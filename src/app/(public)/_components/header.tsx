@@ -10,13 +10,16 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { LogIn, Menu } from "lucide-react";
 
 
 export function Header(){
     const [isOpen, setIsOpen] = useState(false);
+
+    const session = null;
+
     const navItens = [
-        { href:"#profissioanais", label:"Profissionais"},
+        { href:"#profissionais", label:"Profissionais"},
     ]
     const Navlinks = () => (
     <>
@@ -25,12 +28,26 @@ export function Header(){
         onClick={ () => setIsOpen(false) }
         key={item.href}
         asChild
-        className="w-full justify-start text-left bg-transparent hover:bg-transparent text-black border-none shadow-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+        className=" bg-transparent hover:bg-transparent text-black shadow-none"
         >
-        <Link href={item.href}>{item.label}</Link>
+        <Link href={item.href} className='text-base'>
+        {item.label}</Link>
         </Button>
 
         ))}
+
+        {session ? (
+            <Link
+            href="/dashboard"
+            className='flex items-center justify-center gap-2'>
+                Painel da clinica
+            </Link>
+        ) : (
+            <Button className='bg-emerald-500 hover:bg-emerald-600 text-white transition-all'>
+                <LogIn/>
+                Fazer Login
+            </Button>
+        )}
     </>
     )
 
@@ -50,9 +67,10 @@ export function Header(){
                 </nav>
 
                 <Sheet open={isOpen} onOpenChange={setIsOpen}>
+
                     <SheetTrigger asChild className="md:hidden">
                         <Button 
-                        className="text-black hover:bg-transparent shadow-none"
+                        className="text-black hover:bg-transparent"
                         variant="ghost"
                         size="icon"
                          >
@@ -60,13 +78,13 @@ export function Header(){
                         </Button>
                     </SheetTrigger>
 
-                    <SheetContent side="right" className="w-[240px] sm:w-[300px] z-[9999]">
+                    <SheetContent side="right" className="w-[220px] sm:w-[260px] z-[9999]">
                     <SheetHeader>
                         <SheetTitle>Menu</SheetTitle>
                         <SheetDescription>Veja nossos links</SheetDescription>
                     </SheetHeader>
 
-                    <nav className="flex flex-col space-y-4 items-start mt-6">
+                    <nav className="flex flex-col space-y-4 items-center mt-6">
                     <Navlinks />
                     </nav>
 
