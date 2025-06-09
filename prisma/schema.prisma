@@ -87,6 +87,19 @@ model Subscription {
 
 }
 
+model WhatsAppInstance {
+  id          String   @id @default(uuid())
+  instanceId  String   @unique   // O nome da instância na Evolution API (pode ser o userId)
+  status      String                // 'connected', 'disconnected', 'qr_pending', 'error'
+  qrCode      String?               // Armazenar o QR Code se necessário (base64)
+  connectedAt DateTime?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
 
 model User {
   id            String          @id @default(cuid())
@@ -100,6 +113,7 @@ model User {
   timezone      String?
   stripe_customer_id String?
   times         String[] @default([])
+  whatsappInstances WhatsAppInstance[]
 
   subscription Subscription?
   services     Service[]
