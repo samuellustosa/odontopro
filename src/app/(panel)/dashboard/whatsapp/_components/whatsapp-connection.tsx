@@ -271,7 +271,7 @@ export function WhatsAppConnection({ userId }: WhatsAppConnectionProps) {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {renderStatusIcon()} Gerenciar Conexão WhatsApp
@@ -308,14 +308,14 @@ export function WhatsAppConnection({ userId }: WhatsAppConnectionProps) {
         <Button
           onClick={handleConnect}
           disabled={isLoading || status === 'connected' || status === 'qr_pending'}
-          className="w-full"
+          className="w-full bg-green-500 hover:bg-green-600 font-bold"
         >
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <QrCode className="mr-2 h-4 w-4" />
           )}
-          {isLoading ? 'Conectando...' : 'Conectar WhatsApp'}
+          {isLoading ? 'Conectando...' : 'Conectar WhatsApp Business'}
         </Button>
 
         {status === 'connected' && (

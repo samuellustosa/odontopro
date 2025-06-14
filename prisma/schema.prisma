@@ -99,6 +99,19 @@ model WhatsAppInstance {
   updatedAt   DateTime @updatedAt
 }
 
+model ChatbotConfig {
+  id            String   @id @default(uuid())
+  name          String   @default("Assistente Virtual")
+  personality   String   @default("Gentil, amigavel, educado, profissional") 
+  enabled       Boolean  @default(true) 
+
+  userId        String   @unique 
+  user          User     @relation(fields: [userId], references: [id])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 
 
 model User {
@@ -114,6 +127,7 @@ model User {
   stripe_customer_id String?
   times         String[] @default([])
   whatsappInstances WhatsAppInstance[]
+  chatbotConfig     ChatbotConfig?
 
   subscription Subscription?
   services     Service[]

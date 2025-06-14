@@ -19,14 +19,14 @@ import { Button } from "@/components/ui/button";
 import { Banknote, CalendarCheck2, ChevronLeft, ChevronRight, Folder, List, Settings, MessageSquareText } from "lucide-react"; // Importe o ícone para o WhatsApp
 import Link from "next/link";
 import Image from "next/image";
-import logoImg from "../../../../../public/logo-odonto.png"
+import logoImg from "../../../../../public/logo-odonto.jpeg"
 
 export function SidebarDashboard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="flex min-h-screen w-full">
+    <div className="flex min-h-screen w-full bg-emerald-50">
       <aside
         className={clsx(
           "flex flex-col border-r bg-background transition-all duration-300 p-4 h-full",
@@ -181,13 +181,13 @@ export function SidebarDashboard({ children }: { children: React.ReactNode }) {
               </SheetTrigger>
 
               <h1 className="text-base md:text-lg font-semibold">
-                Menu OdontoPRO
+                Menu Agendime
               </h1>
             </div>
 
             <SheetContent side="right" className="sm:max-w-xs text-black p-4">
               <SheetHeader>
-                <SheetTitle>OdontoPRO</SheetTitle>
+                <SheetTitle>Agendime</SheetTitle>
                 <SheetDescription>Menu Administrativo</SheetDescription>
               </SheetHeader>
 
@@ -208,7 +208,6 @@ export function SidebarDashboard({ children }: { children: React.ReactNode }) {
                   icon={<Folder className="w-6 h-6" />}
                 />
 
-                {/* NOVO LINK DO WHATSAPP - NO MENU MOBILE */}
                 <SidebarLink
                   href="/dashboard/whatsapp"
                   label="WhatsApp"

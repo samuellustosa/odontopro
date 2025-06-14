@@ -2,6 +2,7 @@ import getSession from '@/lib/getSession'
 import { WhatsAppConnection } from './_components/whatsapp-connection'; // Caminho relativo para o componente
 import { redirect } from 'next/navigation';
 import { getUserData} from './_data-access/get-infi-user'
+import { ChatbotConfigForm } from './_components/chatbot-config-form'
 
 export default async function WhatsappPage() {
   // Se você usa getSession() como no seu dashboard:
@@ -22,6 +23,11 @@ export default async function WhatsappPage() {
         <WhatsAppConnection userId={session.user.id} />
       )}
       {/* Outros elementos da página WhatsApp */}
+      <div className="mt-8">
+          <ChatbotConfigForm userId={session.user.id} />
+        </div>
     </div>
+
+    
   );
 }
