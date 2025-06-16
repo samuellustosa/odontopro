@@ -12,10 +12,8 @@ export async function ServicesContent( { userId }: ServiceContentProps){
 
     const services = await getAllServices({ userId: userId })
 
-    console.log(services)
-
 return(
-    <SevicesList/>
+    <SevicesList services={services.data || []} />
 )
 
 }

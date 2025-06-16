@@ -21,10 +21,10 @@ export interface UseDialogServicesFormProps{
 
 export type DialogServicesFormData = z.infer<typeof formSchema>
 
-export function useDialogServicesForm(){
+export function useDialogServicesForm({ initialValues }: UseDialogServicesFormProps){
     return useForm<DialogServicesFormData>({
         resolver:zodResolver(formSchema),
-        defaultValues:{
+        defaultValues: initialValues || {
             name: "",
             price: "",
             hours: "",

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DialogServicesFormData, useDialogServicesForm } from "./dialog-service-form"
 import {
@@ -13,17 +14,105 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { convertRealToCents } from "@/utils/convertCurrency"
+import { createNewService } from "../_actions/create-service"
+import { toast } from 'sonner'
+import { useRouter } from "next/navigation"
+import { updateService } from "../_actions/update-service"
 
-export function DialogService(){
+
+interface DialogServiceProps{
+    closeModal: () => void;
+    serviceId?: string;
+    initialValues?: {
+        name: string;
+        price: string;
+        hours: string;
+        minutes: string;
+    }
+
+}
+
+export function DialogService({ closeModal, initialValues, serviceId}: DialogServiceProps){
 
 
-    const form = useDialogServicesForm()
+    const form = useDialogServicesForm({ initialValues: initialValues })
+    const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
     async function onSubmit(values: DialogServicesFormData){
+        setLoading(true);
 
         const priceIncents = convertRealToCents(values.price)
+        const hours = parseInt(values.hours) || 0;
+        const minutes = parseInt(values.minutes) || 0;
 
-        console.log(priceIncents)
+        const duration = (hours * 60) + minutes;
+
+
+        if(serviceId){
+            await editServiceByid({
+                serviceId: serviceId,
+                name: values.name,
+                priceInCents: priceIncents,
+                duration: duration
+            })
+
+            return;
+        }
+
+        const response = await createNewService({
+            name: values.name,
+            price: priceIncents,
+            duration: duration
+        })
+
+        setLoading(false);
+
+        if(response.error){
+            toast.error(response.error)
+            return;
+        }
+
+        toast.success("Serviço cadastrado com sucesso!")
+        handleCloseModal();
+        router.refresh();
+
+    }
+
+    async function editServiceByid({
+         serviceId,
+         name, 
+         priceInCents, 
+         duration}: {
+            serviceId: string, 
+            name: string, 
+            priceInCents: number, 
+            duration: number
+        }){
+
+            const response = await updateService({
+                serviceId: serviceId,
+                name: name,
+                price: priceInCents,
+                duration: duration
+            })
+
+            setLoading(false)
+
+            if(response.error) {
+                toast(response.error)
+                return;
+            }
+
+            toast(response.data)
+            handleCloseModal();
+    }
+
+
+
+    function handleCloseModal(){
+        form.reset();
+        closeModal();
     }
 
 
@@ -129,8 +218,11 @@ export function DialogService(){
                         />
                     </div>
 
-                    <Button type="submit" className="w-full font-semibold text-white bg-emerald-500 hover:bg-emerald-600">
-                            Adicionar serviço
+                    <Button type="submit" 
+                            className="w-full font-semibold text-white bg-emerald-500 hover:bg-emerald-600"
+                            disabled={loading}
+                            >
+                                {loading ? "Carregando..." : `${serviceId? "Atualizar serviço" : "Cadastrar serviço"}`}
                     </Button>
 
 
