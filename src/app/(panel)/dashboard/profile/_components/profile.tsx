@@ -41,6 +41,9 @@ import {Prisma } from '@/generated/prisma'
 import { updateProfile } from '../_actions/update-profile'
 import { toast } from 'sonner'
 import { formatPhone } from '@/utils/formatPhone'
+import { signOut, useSession} from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { Router } from 'next/router'
 
 
 type UserWithSubscription = Prisma.UserGetPayload<{
@@ -57,8 +60,11 @@ interface ProfileContentProps{
 
 export function ProfileContent({ user}: ProfileContentProps) {
 
+    const router = useRouter();
+
     const [selectedHours, setSelectedHours] = useState<string[]>(user.times ?? [])
     const [dialogIsOpen, setDialogisOpen] = useState(false);
+    const { update } = useSession();
 
     const form = useProfileForm({
         name: user.name,
@@ -86,6 +92,8 @@ export function ProfileContent({ user}: ProfileContentProps) {
 
         return hours;
     }
+
+    const hours = generateTimeSlots();
 
     const timeZones = Intl.supportedValuesOf('timeZone').filter((zone) => 
         zone.startsWith("America/Sao_Paulo") ||
@@ -129,7 +137,13 @@ export function ProfileContent({ user}: ProfileContentProps) {
     }
 
 
-    const hours = generateTimeSlots();
+    async function handleLogout(){
+        await signOut();
+        await update();
+        router.replace("/");
+
+    }
+
 
     function toggleHour(hour: string){
         setSelectedHours((prev) => prev.includes(hour) ? prev.filter(h => h !== hour): [...prev, hour].sort())
@@ -350,6 +364,14 @@ export function ProfileContent({ user}: ProfileContentProps) {
                     </Card>
                 </form>
             </Form>
+
+            <section className='mt-4'>
+                <Button
+                    variant="destructive"
+                    onClick={handleLogout}>
+                    Sair da conta
+                </Button>
+            </section>
         </div>
     )
 }
