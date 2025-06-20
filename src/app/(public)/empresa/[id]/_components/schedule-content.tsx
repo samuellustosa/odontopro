@@ -1,5 +1,7 @@
 "use client"
 
+
+import { useState, useCallback, useEffect } from 'react'
 import Image from "next/image"
 import imgTeste from "../../../../../../public/foto1.png"
 import { MapPin } from "lucide-react"
@@ -12,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { formatPhone } from '@/utils/formatPhone'
 import { DateTimePicker } from './date-picker'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-
+import { ScheduleTimeList } from './schedule-time-list'
 
 
 type UserWithServiceAndSubscription = Prisma.UserGetPayload<{
@@ -29,9 +31,71 @@ interface ScheduleContentProps {
     empresa: UserWithServiceAndSubscription
 }
 
+export interface TimeSlot {
+    time: string;
+    available: boolean;
+  }
+
 export function ScheduleContent({ empresa }: ScheduleContentProps){
 
     const form = useAppointmentForm();
+    const { watch } = form;
+
+    const selectedDate = watch("date")
+    const selectedServiceId = watch("serviceId")
+  
+
+    const [selectedTime, setSelectedTime] = useState("");
+    const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
+    const [loadingSlots, setLoadingSlots] = useState(false);
+
+    // Quais os horários bloqueados 01/02/2025 > ["15:00", "18:00"]
+    const [blockedTimes, setBlockedTimes] = useState<string[]>([])
+
+
+    // Função que busca os horários bloqueados (via Fetch HTTP)
+    const fetchBlockedTimes = useCallback(async (date: Date): Promise<string[]> => {
+        setLoadingSlots(true);
+        try {
+            const dateString = date.toISOString().split("T")[0]
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/schedule/get-appointments?userId=${empresa.id}&date=${dateString}`)
+            
+            const json = await response.json();
+            setLoadingSlots(false);
+            return json; // Retornar o array com horarios que já tem bloqueado desse Dia e dessa empresa.
+
+
+        } catch (err) {
+            console.log(err)
+            setLoadingSlots(false);
+            return [];
+        }
+    }, [empresa.id])
+
+
+    useEffect(() => {
+
+        if (selectedDate) {
+        fetchBlockedTimes(selectedDate).then((blocked) => {
+            setBlockedTimes(blocked)
+            const times = empresa.times || [];
+
+            const finalSlots = times.map((time) => ({
+                time: time,
+                available: !blocked.includes(time)
+            }))
+
+            setAvailableTimeSlots(finalSlots)
+
+        })
+        }
+
+    }, [selectedDate, empresa.times, fetchBlockedTimes, selectedTime])
+
+
+    async function handleRegisterAppointment(formData: AppointmentFormData) {
+        console.log(formData);
+    }
 
     return(
         <div className="min-h-screen flex flex-col">
@@ -66,6 +130,7 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
                 {/* Formulário de agendamento */}
                 <Form {...form}>
                     <form
+                    onSubmit={form.handleSubmit(handleRegisterAppointment)}
                     className="mx-2 space-y-6 bg-white p-6 border rounded-md shadow-sm"
                     >
 
@@ -173,6 +238,54 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
                             </FormItem>
                         )}
                         />
+
+                        {/* Horários disponíveis */}
+                        {selectedServiceId && (
+                            <div className="space-y-2">
+                                <Label className="font-semibold">Horários disponíveis:</Label>
+                                <div className="bg-gray-100 p-4 rounded-lg">
+                                {loadingSlots ? (
+                                    <p>Carregando horários...</p>
+                                ) : availableTimeSlots.length === 0 ? (
+                                    <p>Nenhum horário disponível</p>
+                                ) : (
+                                    <ScheduleTimeList
+                                    onSelectTime={(time) => setSelectedTime(time)}
+                                    empresaTimes={empresa.times}
+                                    blockedTimes={blockedTimes}
+                                    availableTimeSlots={availableTimeSlots}
+                                    selectedTime={selectedTime}
+                                    selectedDate={selectedDate}
+                                    requiredSlots={
+                                        empresa.services.find(
+                                        (service) => service.id === selectedServiceId
+                                        )
+                                        ? Math.ceil(
+                                            empresa.services.find(
+                                                (service) => service.id === selectedServiceId
+                                            )!.duration / 30
+                                            )
+                                        : 1
+                                    }
+                                    />
+                                )}
+                                </div>
+                            </div>
+                        )}
+
+                        {empresa.status ? (
+                            <Button
+                                type="submit"
+                                className="w-full bg-emerald-500 hover:bg-emerald-400"
+                                disabled={!watch("name") || !watch("email") || !watch("phone") || !watch("date")}
+                            >
+                                Realizar agendamento
+                            </Button>
+                            ) : (
+                            <p className="bg-red-500 text-white text-center px-4 py-2 rounded-md font-bold">
+                                Estamos fechados no momento.
+                            </p>
+                            )}
 
                     </form>
                 </Form>
