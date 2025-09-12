@@ -1,3 +1,5 @@
+import { start } from "repl";
+import { number, string } from "zod";
 
 export function isToday(date: Date) {
   const now = new Date();
@@ -28,4 +30,28 @@ export function isSlotInThePast(slotTime: string) {
 
   return false;
 
+}
+
+export function isSlotssequenceAvailable(
+    stratSlot: string,//primeiro horario disponivel
+  requiredSlots: number,//quantidade de slots necessarios
+  allSlots: string[], //todo gorarios da empresa
+  blockedSlots: string[]//horarios bloqueados
+){
+
+const startIndex = allSlots.indexOf(stratSlot)
+if(startIndex === -1 || startIndex + requiredSlots > allSlots.length){
+  return false;
+}
+
+  for(let i = startIndex; i <startIndex + requiredSlots; i++){
+    const slotTime = allSlots[i]
+
+    if(blockedSlots.includes(slotTime)){
+      return false;
+    }
+  }
+
+
+  return true;
 }
