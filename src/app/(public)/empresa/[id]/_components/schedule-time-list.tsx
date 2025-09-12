@@ -38,8 +38,9 @@ export function ScheduleTimeList({
           blockedTimes
         )
 
+        const slotEnable = slot.available && sequenceOk
 
-        const slotsisPast = dateIsToday && isSlotInThePast(slot.time)
+        const slotsIsPast = dateIsToday && isSlotInThePast(slot.time)
 
         return (
           <Button
@@ -49,8 +50,9 @@ export function ScheduleTimeList({
             key={slot.time}
             className={cn("h-10 select-none",
               selectedTime === slot.time && "border-2 border-emerald-500 text-primary",
+              !slotEnable && "opacity-50 cursor-not-allowed"
             )}
-            disabled={slotsisPast}
+            disabled={slotsIsPast}
           >
             {slot.time}
           </Button>

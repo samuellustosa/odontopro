@@ -33,7 +33,7 @@ export function isSlotInThePast(slotTime: string) {
 }
 
 export function isSlotssequenceAvailable(
-    stratSlot: string,//primeiro horario disponivel
+  stratSlot: string,//primeiro horario disponivel
   requiredSlots: number,//quantidade de slots necessarios
   allSlots: string[], //todo gorarios da empresa
   blockedSlots: string[]//horarios bloqueados
@@ -44,7 +44,7 @@ if(startIndex === -1 || startIndex + requiredSlots > allSlots.length){
   return false;
 }
 
-  for(let i = startIndex; i <startIndex + requiredSlots; i++){
+  for(let i = startIndex; i < startIndex + requiredSlots; i++){
     const slotTime = allSlots[i]
 
     if(blockedSlots.includes(slotTime)){
