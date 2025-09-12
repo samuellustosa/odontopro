@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { TimeSlot } from "./schedule-content";
 import { cn } from '@/lib/utils'
-import { isSlotInThePast, isToday, isSlotssequenceAvailable } from "./schedule-utils";
+import { isSlotInThePast, isToday, isSlotSequenceAvailable } from './schedule-utils'
 
 interface ScheduleTimeListProps {
   selectedDate: Date;
@@ -27,32 +27,34 @@ export function ScheduleTimeList({
 
   const dateIsToday = isToday(selectedDate)
 
+
   return (
     <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
       {availableTimeSlots.map((slot) => {
 
-        const sequenceOk = isSlotssequenceAvailable(
+        const sequenceOK = isSlotSequenceAvailable(
           slot.time,
           requiredSlots,
           empresaTimes,
           blockedTimes
         )
 
-        const slotEnable = slot.available && sequenceOk
+        const slotIsPast = dateIsToday && isSlotInThePast(slot.time)
 
-        const slotsIsPast = dateIsToday && isSlotInThePast(slot.time)
+        const slotEnabled = slot.available && sequenceOK && !slotIsPast;
+
 
         return (
           <Button
-            onClick={() => onSelectTime(slot.time)}
+            onClick={() => slotEnabled && onSelectTime(slot.time)}
             type="button"
             variant="outline"
             key={slot.time}
             className={cn("h-10 select-none",
               selectedTime === slot.time && "border-2 border-emerald-500 text-primary",
-              !slotEnable && "opacity-50 cursor-not-allowed"
+              !slotEnabled && "opacity-50 cursor-not-allowed"
             )}
-            disabled={slotsIsPast}
+            disabled={!slotEnabled}
           >
             {slot.time}
           </Button>

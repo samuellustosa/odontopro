@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   if (!userId || userId === "null" || !dateParam || dateParam === "null") {
     return NextResponse.json({
-      error: "Nenhum agendamento encontrado"
+      error: "Nenhum agendamento encotnrado"
     }, {
       status: 400
     })
@@ -23,62 +23,64 @@ export async function GET(request: NextRequest) {
     const startDate = new Date(year, month - 1, day, 0, 0, 0)
     const endDate = new Date(year, month - 1, day, 23, 59, 59, 999)
 
-     const user = await prisma.user.findFirst({
-        where: {
-          id: userId
-        }
-      })
-
-      if (!user) {
-        return NextResponse.json({
-          error: "Nenhum agendamento encotnrado"
-        }, {
-          status: 400
-        })
+    const user = await prisma.user.findFirst({
+      where: {
+        id: userId
       }
+    })
 
-      const appointments = await prisma.appointment.findMany({
-        where: {
-          userId: userId,
-          appointmentDate: {
-            gte: startDate,
-            lte: endDate
-          }
-        },
-        include: {
-          service: true,
-        }
+    if (!user) {
+      return NextResponse.json({
+        error: "Nenhum agendamento encotnrado"
+      }, {
+        status: 400
       })
+    }
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        userId: userId,
+        appointmentDate: {
+          gte: startDate,
+          lte: endDate
+        }
+      },
+      include: {
+        service: true,
+      }
+    })
 
     // Montar com todos os (slots) ocupados
-     const blockedSlots = new Set<string>()
+    const blockedSlots = new Set<string>()
 
-        for (const apt of appointments) {
-            // Ex: apt.time = "10:00", apt.service.duration = 60 (1h)
-            const requiredSlots = Math.ceil(apt.service.duration / 30)
-            const startIndex = user.times.indexOf(apt.time)
+    for (const apt of appointments) {
+      // Ex: apt.time = "10:00", apt.service.duration = 60 (1h)
+      const requiredSlots = Math.ceil(apt.service.duration / 30)
+      const startIndex = user.times.indexOf(apt.time)
 
-        if (startIndex !== -1) {
-            for (let i = 0; i < requiredSlots; i++) {
-                const blockedSlot = user.times[startIndex + i]
-                if (blockedSlot) {
-                    blockedSlots.add(blockedSlot)
-            }
-            }
+      if (startIndex !== -1) {
+        for (let i = 0; i < requiredSlots; i++) {
+          const blockedSlot = user.times[startIndex + i]
+          if (blockedSlot) {
+            blockedSlots.add(blockedSlot)
+          }
         }
+      }
 
-        }
+    }
 
-        const blockedtimes = Array.from(blockedSlots);
 
-        console.log("blockedtimes: ", blockedtimes)
-    
-        return NextResponse.json(blockedtimes)
+    const blockedtimes = Array.from(blockedSlots);
+
+    console.log("blockedtimes: ", blockedtimes)
+
+    return NextResponse.json(blockedtimes)
+
 
   } catch (err) {
     console.log(err);
     return NextResponse.json({
-      error: "Nenhum agendamento encontrado"
+      error: "Nenhum agendamento encotnrado"
     }, {
       status: 400
     })

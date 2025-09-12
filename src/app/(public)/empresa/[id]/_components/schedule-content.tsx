@@ -59,8 +59,7 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
         setLoadingSlots(true);
         try {
             const dateString = date.toISOString().split("T")[0]
-            const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/schedule/get-appointments?userId=${empresa.id}&date=${dateString}`)
-            
+            const response = await fetch(`/api/schedule/get-appointments?userId=${empresa.id}&date=${dateString}`);
             const json = await response.json();
             setLoadingSlots(false);
             return json; // Retornar o array com horarios que já tem bloqueado desse Dia e dessa empresa.
