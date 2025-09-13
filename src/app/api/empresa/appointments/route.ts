@@ -7,7 +7,7 @@ import { NextResponse, NextRequest } from 'next/server'
   Rota para buscar todos os agendamentos de uma clinica
 
   > Preciso ter a data
-  > Preciso ter o id da clinica (NAO POSSO RECEBER DA ROTA req.params)
+  > Preciso ter o id da empresa (NAO POSSO RECEBER DA ROTA req.params)
 */
 
 
@@ -18,13 +18,13 @@ export const GET = auth(async function GET(request) {
 
   const searchParams = request.nextUrl.searchParams;
   const dateString = searchParams.get("date") as string;
-  const clinicId = request.auth?.user?.id
+  const empresaId = request.auth?.user?.id
 
   if (!dateString) {
     return NextResponse.json({ error: "Data não informada!" }, { status: 400 })
   }
 
-  if (!clinicId) {
+  if (!empresaId) {
     return NextResponse.json({ error: "Usuário não encontrado" }, { status: 400 })
   }
 
@@ -38,7 +38,7 @@ export const GET = auth(async function GET(request) {
 
     const appointments = await prisma.appointment.findMany({
       where: {
-        userId: clinicId,
+        userId: empresaId,
         appointmentDate: {
           gte: startDate,
           lte: endDate
