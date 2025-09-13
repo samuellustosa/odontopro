@@ -10,9 +10,14 @@ import {
   CardDescription
 } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery,useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { Prisma } from '@/generated/prisma'
+import { Button } from '@/components/ui/button'
+import { X, Eye } from 'lucide-react'
+import { cancelAppointment } from '../../_actions/cancel-appointment'
+import { toast } from 'sonner'
+
 
 
 type AppointmentWithService = Prisma.AppointmentGetPayload<{
@@ -30,8 +35,10 @@ export function AppointmentsList({ times }: AppointmentsListProps) {
 
   const searchParams = useSearchParams();
   const date = searchParams.get("date")
+    const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ["get-appointments", date],
     queryFn: async () => {
 
@@ -93,6 +100,21 @@ const occupantMap: Record<string, AppointmentWithService> = {}
   }
 
 
+  async function handleCancelAppointment(appointmentId: string) {
+    const response = await cancelAppointment({ appointmentId: appointmentId })
+
+    if (response.error) {
+      toast.error(response.error);
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["get-appointments"] })
+    await refetch()
+    toast.success(response.data);
+
+  }
+
+
 
   return (
     <Card>
@@ -116,17 +138,37 @@ const occupantMap: Record<string, AppointmentWithService> = {}
               if (occupant) {
                 return (
                   <div
-                    key={slot}
-                    className='flex items-center py-2 border-t last:border-b'
-                  >
-                    <div className='w-16 text-sm font-semibold'>{slot}</div>
-                    <div className='flex-1 text-sm'>
-                      <div className='font-semibold'>{occupant.name}</div>
-                      <div className='text-sm text-gray-500'>
-                        {occupant.phone}
-                      </div>
+                        key={slot}
+                        className='flex items-center py-2 border-t last:border-b'
+                      >
+                        <div className='w-16 text-sm font-semibold'>{slot}</div>
+                        <div className='flex-1 text-sm'>
+                          <div className='font-semibold'>{occupant.name}</div>
+                          <div className='text-sm text-gray-500'>
+                            {occupant.phone}
+                          </div>
+                        </div>
+
+                        <div className='ml-auto'>
+                          <div className='flex'>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                            >
+                              <Eye className='w-4 h-4' />
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleCancelAppointment(occupant.id)}
+                            >
+                              <X className='w-4 h-4' />
+                            </Button>
+                          </div>
+                          </div>
+
                     </div>
-                  </div>
                 )
               }
 
