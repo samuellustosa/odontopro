@@ -49,7 +49,7 @@ export function Header(){
             <Link
             href="/dashboard"
             className='flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-1 px-4 rounded-md'>
-                Painel da clinica
+                Painel da Empresa
             </Link>
         ) : (
             <Button onClick={handleLogin} className='bg-emerald-500 hover:bg-emerald-600 text-white transition-all'>
@@ -68,7 +68,7 @@ export function Header(){
             <div className="container mx-auto flex items-center justify-between">
                 <Link href="/"
                 className="text-3xl font-bold text-zinc-900">
-                Ondonto<span className="text-emerald-500">PRO</span>
+                Agendi<span className="text-emerald-500">ME</span>
                 </Link>
 
                 <nav className="hidden md:flex items-center space-x-4">

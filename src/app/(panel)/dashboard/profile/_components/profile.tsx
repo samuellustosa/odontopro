@@ -230,7 +230,7 @@ export function ProfileContent({ user}: ProfileContentProps) {
                                     render={ ({ field }) => (
                                         <FormItem>
                                             <FormLabel className='font-semibold'>
-                                                Status da clinica
+                                                Status da empresa
                                             </FormLabel>
                                             <FormControl>
                                                 <Select 
@@ -242,8 +242,8 @@ export function ProfileContent({ user}: ProfileContentProps) {
                                                         <SelectValue placeholder="Selecione o status da clinica"/>
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="active">ATIVO (clinica aberta)</SelectItem>
-                                                        <SelectItem value="inactive">INATIVO (clinica fechada)</SelectItem>
+                                                        <SelectItem value="active">ATIVO (empresa aberta)</SelectItem>
+                                                        <SelectItem value="inactive">INATIVO (empresa fechada)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </FormControl>
