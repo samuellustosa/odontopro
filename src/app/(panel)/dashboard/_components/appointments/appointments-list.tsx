@@ -49,8 +49,6 @@ export function AppointmentsList({ times }: AppointmentsListProps) {
 
       const json = await response.json() as AppointmentWithService[];
 
-      console.log(json);
-
       if (!response.ok) {
         return []
       }
@@ -111,7 +109,6 @@ const occupantMap: Record<string, AppointmentWithService> = {}
             <p>Carregando agenda...</p>
           ) : (
             times.map((slot) => {
-              // ocupantMap["15:00"]
               const occupant = occupantMap[slot]
 
               if (occupant) {
