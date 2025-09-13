@@ -55,7 +55,9 @@ export function AppointmentsList({ times }: AppointmentsListProps) {
 
       return json
 
-    }
+    },
+    staleTime: 20000, //20 segundos de staletime
+    refetchInterval: 60000 // 60 segundos vai batter na api
   })
 
 
