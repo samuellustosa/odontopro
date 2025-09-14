@@ -26,7 +26,7 @@ export function SidebarDashboard({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="flex min-h-screen w-full bg-emerald-50">
+    <div className="flex min-h-screen w-full">
       <aside
         className={clsx(
           "flex flex-col border-r bg-background transition-all duration-300 p-4 h-full",
