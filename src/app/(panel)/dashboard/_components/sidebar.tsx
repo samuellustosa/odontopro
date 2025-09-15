@@ -16,7 +16,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button";
-import { Banknote, CalendarCheck2, ChevronLeft, ChevronRight, Folder, List, Settings, MessageSquareText } from "lucide-react"; // Importe o ícone para o WhatsApp
+import { Banknote, CalendarCheck2, ChevronLeft, ChevronRight, Folder, List, Settings, MessageSquareText } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import logoImg from "../../../../../public/logo-odonto.jpeg"
@@ -73,16 +73,6 @@ export function SidebarDashboard({ children }: { children: React.ReactNode }) {
                   isCollapsed={isCollapsed}
                   icon={<Folder className="w-6 h-6" />}
                 />
-
-                {/* NOVO LINK DO WHATSAPP - QUANDO RECOLHIDO */}
-                <SidebarLink
-                  href="/dashboard/whatsapp"
-                  label="WhatsApp"
-                  pathname={pathname}
-                  isCollapsed={isCollapsed}
-                  icon={<MessageSquareText className="w-6 h-6" />}
-                />
-
                 <SidebarLink
                   href="/dashboard/profile"
                   label="Meu perfil"
@@ -124,14 +114,6 @@ export function SidebarDashboard({ children }: { children: React.ReactNode }) {
                   icon={<Folder className="w-6 h-6" />}
                 />
 
-            {/* NOVO LINK DO WHATSAPP - QUANDO EXPANDIDO */}
-            <SidebarLink
-                  href="/dashboard/whatsapp"
-                  label="WhatsApp"
-                  pathname={pathname}
-                  isCollapsed={isCollapsed}
-                  icon={<MessageSquareText className="w-6 h-6" />}
-                />
 
 
             <span className="text-sm text-gray-400 font-medium mt-1 uppercase">
@@ -208,13 +190,6 @@ export function SidebarDashboard({ children }: { children: React.ReactNode }) {
                   icon={<Folder className="w-6 h-6" />}
                 />
 
-                <SidebarLink
-                  href="/dashboard/whatsapp"
-                  label="WhatsApp"
-                  pathname={pathname}
-                  isCollapsed={isCollapsed}
-                  icon={<MessageSquareText className="w-6 h-6" />}
-                />
 
                 <SidebarLink
                   href="/dashboard/profile"
