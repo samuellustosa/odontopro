@@ -23,6 +23,7 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog'
 import { DialogAppointment } from './dialog-appointment'
+import { ButtonPickerAppointment } from './button-date'
 
 
 
@@ -134,7 +135,7 @@ const occupantMap: Record<string, AppointmentWithService> = {}
             Agendamentos
         </CardTitle>
 
-        <button>SELECIONAR DATA</button>  
+        <ButtonPickerAppointment/>
       </CardHeader>
 
       <CardContent>
