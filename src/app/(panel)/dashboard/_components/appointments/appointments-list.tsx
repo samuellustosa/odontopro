@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {} from '@/components/ui/scroll-area'
 import {
@@ -17,10 +18,15 @@ import { Button } from '@/components/ui/button'
 import { X, Eye } from 'lucide-react'
 import { cancelAppointment } from '../../_actions/cancel-appointment'
 import { toast } from 'sonner'
+import {
+  Dialog,
+  DialogTrigger
+} from '@/components/ui/dialog'
+import { DialogAppointment } from './dialog-appointment'
 
 
 
-type AppointmentWithService = Prisma.AppointmentGetPayload<{
+export type AppointmentWithService = Prisma.AppointmentGetPayload<{
   include: {
     service: true,
   }
@@ -35,7 +41,11 @@ export function AppointmentsList({ times }: AppointmentsListProps) {
 
   const searchParams = useSearchParams();
   const date = searchParams.get("date")
-    const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [detailAppointment, setDetailAppointment] = useState<AppointmentWithService | null>(null)
+
+
 
 
   const { data, isLoading, refetch } = useQuery({
@@ -117,6 +127,7 @@ const occupantMap: Record<string, AppointmentWithService> = {}
 
 
   return (
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
     <Card>
       <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
         <CardTitle className='text-xl md:text-2x1 font-bold'>
@@ -151,12 +162,15 @@ const occupantMap: Record<string, AppointmentWithService> = {}
 
                         <div className='ml-auto'>
                           <div className='flex'>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                            >
-                              <Eye className='w-4 h-4' />
-                            </Button>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDetailAppointment(occupant)}
+                              >
+                                <Eye className='w-4 h-4' />
+                              </Button>
+                            </DialogTrigger>
 
                             <Button
                               variant="ghost"
@@ -189,5 +203,11 @@ const occupantMap: Record<string, AppointmentWithService> = {}
         </ScrollArea>
       </CardContent>
     </Card>
+
+    <DialogAppointment
+      appointment={detailAppointment}
+    />
+
+    </Dialog>
   )
 }
