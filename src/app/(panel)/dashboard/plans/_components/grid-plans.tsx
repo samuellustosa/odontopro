@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/card'
 import { Check } from 'lucide-react'
 import { subscriptionPlans } from '@/utils/plans/index'
+import { SubscriptionButton } from './subscription-button'
 
 export function GridPlans() {
   return (
@@ -54,11 +55,12 @@ export function GridPlans() {
             </ul>
           </CardContent>
 
-          <CardFooter className="p-0">
-            <Button className="w-full h-9 text-lg font-semibold bg-black text-white hover:bg-black/90 rounded-xl">
-              Ativar Assinatura
-            </Button>
+          <CardFooter>
+            <SubscriptionButton
+              type={plan.id === "BASIC" ? "BASIC" : "PROFESSIONAL"}
+            />
           </CardFooter>
+
         </Card>
       ))}
     </section>
