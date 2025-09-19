@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { stripe } from '@/utils/stripe'
+import { manageSubscription } from '@/utils/manage-subscription'
+import { Plan } from '@/generated/prisma'
+import { revalidatePath } from 'next/cache'
 
 
 
@@ -26,24 +29,43 @@ export const POST = async (request: Request) => {
     case "customer.subscription.deleted":
       const payment = event.data.object as Stripe.Subscription;
 
-      console.log("Assinatura cancelada: ", payment)
+      await manageSubscription(
+        payment.id,
+        payment.customer.toString(),
+        false,
+        true
+      )
 
-      // Ir lá no nosso banco de dados e deletar a assinatura do usuário
       break;
     case "customer.subscription.updated":
       const paymentIntent = event.data.object as Stripe.Subscription;
 
-      console.log("Atualizar assinatura: ", paymentIntent)
+      await manageSubscription(
+        paymentIntent.id,
+        paymentIntent.customer.toString(),
+        false,
+      )
 
-      // Ir lá no nosso banco de dados e atualizar a assinatura do usuário
+      revalidatePath("/dashboard/plans")
 
       break;
     case "checkout.session.completed":
       const checkoutSession = event.data.object as Stripe.Checkout.Session;
 
-      console.log("Assinatura realizada: ", checkoutSession)
+      const type = checkoutSession?.metadata?.type ? checkoutSession?.metadata?.type : "BASIC";
 
-      // Ir lá no banco e criar uma assinatura ativa para esse usuario
+      if (checkoutSession.subscription && checkoutSession.customer) {
+        await manageSubscription(
+          checkoutSession.subscription.toString(),
+          checkoutSession.customer.toString(),
+          true,
+          false,
+          type as Plan
+        )
+      }
+
+      revalidatePath("/dashboard/plans")
+
       break;
 
     default:

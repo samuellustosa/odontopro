@@ -5,15 +5,6 @@ import { Plan } from '@/generated/prisma'
 
 /**
  * Salvar, atualizar ou deletar informações das assinaturas (subscription) no banco de dados, sincronizando com a Stripe.
- * 
- * @async
- * @function manageSubscription
- * @param {string} subscriptionId - O ID da assinatura a ser gerenciada.
- * @param {string} customerId - O ID do cliente associado à assinatura.
- * @param {boolean} createAction - Indica se uma nova assinatura deve ser criada.
- * @param {boolean} deleteAction - Indica se uma assinatura deve ser deletada. 
- * @param {Plan} [type] - O plano associado à assinatura.
- * @returns {Promise<Response|void>}
  */
 export async function manageSubscription(
   subscriptionId: string,
@@ -23,8 +14,6 @@ export async function manageSubscription(
   type?: Plan
 ) {
 
-  // Buscar do banco o usuario com esse customerId
-  // Slavar os dados da assinatura feita no banco.
 
   const findUser = await prisma.user.findFirst({
     where: {
@@ -42,7 +31,7 @@ export async function manageSubscription(
     id: subscription.id,
     userId: findUser.id,
     status: subscription.status,
-    priceId: subscription.items.data[0].price.id,
+    priceid: subscription.items.data[0].price.id,
     plan: type ?? "BASIC"
   }
 
