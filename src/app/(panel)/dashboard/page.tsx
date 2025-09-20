@@ -22,7 +22,7 @@ export default async function Dashboard() {
     <main>
       <div className='space-x-2 flex items-center justify-end'>
         <Link
-          href={`/clinica/${session.user?.id}`}
+          href={`/empresa/${session.user?.id}`}
           target='_blank'
         >
           <Button className='bg-emerald-500 hover:bg-emerald-400 flex-1 md:flex-[0]'>
