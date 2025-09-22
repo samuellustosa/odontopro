@@ -5,7 +5,6 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
-
   const userId = searchParams.get('userId')
   const dateParam = searchParams.get('date')
 
@@ -70,13 +69,11 @@ export async function GET(request: NextRequest) {
 
     }
 
-
     const blockedtimes = Array.from(blockedSlots);
 
     console.log("blockedtimes: ", blockedtimes)
 
     return NextResponse.json(blockedtimes)
-
 
   } catch (err) {
     console.log(err);
@@ -86,5 +83,4 @@ export async function GET(request: NextRequest) {
       status: 400
     })
   }
-
 }
