@@ -1,3 +1,4 @@
+// src/app/(public)/empresa/[id]/_components/schedule-content.tsx
 "use client"
 
 import { useState, useCallback, useEffect } from 'react'
@@ -50,7 +51,6 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
             const dateString = date.toISOString().split("T")[0]
             const response = await fetch(`/api/schedule/get-appointments?userId=${empresa.id}&date=${dateString}`);
             
-            // Adicionado: Verifique se a resposta é OK antes de processar
             if (!response.ok) {
                 setLoadingSlots(false);
                 return [];
