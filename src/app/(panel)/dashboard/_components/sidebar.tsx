@@ -16,7 +16,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button";
-import { Banknote, CalendarCheck2, ChevronLeft, ChevronRight, Folder, List, Settings, MessageSquareText } from "lucide-react";
+import { Banknote, CalendarCheck2, ChevronLeft, ChevronRight, Folder, List, Settings, MessageSquareText, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import logoImg from "../../../../../public/logo-odonto.jpeg"
@@ -66,28 +66,35 @@ export function SidebarDashboard({ children }: { children: React.ReactNode }) {
                   isCollapsed={isCollapsed}
                   icon={<CalendarCheck2 className="w-6 h-6" />}
                 />
-                <SidebarLink
-                  href="/dashboard/services"
-                  label="Serviços"
-                  pathname={pathname}
-                  isCollapsed={isCollapsed}
-                  icon={<Folder className="w-6 h-6" />}
-                />
-                <SidebarLink
-                  href="/dashboard/profile"
-                  label="Meu perfil"
-                  pathname={pathname}
-                  isCollapsed={isCollapsed}
-                  icon={<Settings className="w-6 h-6" />}
-                />
+            <SidebarLink
+                href="/dashboard/clients"
+                label="Clientes"
+                pathname={pathname}
+                isCollapsed={isCollapsed}
+                icon={<Users className="w-6 h-6" />}
+            />
+            <SidebarLink
+                href="/dashboard/services"
+                label="Serviços"
+                pathname={pathname}
+                isCollapsed={isCollapsed}
+                icon={<Folder className="w-6 h-6" />}
+            />
+            <SidebarLink
+                href="/dashboard/profile"
+                label="Meu perfil"
+                pathname={pathname}
+                isCollapsed={isCollapsed}
+                icon={<Settings className="w-6 h-6" />}
+            />
 
-                <SidebarLink
-                  href="/dashboard/plans"
-                  label="Planos"
-                  pathname={pathname}
-                  isCollapsed={isCollapsed}
-                  icon={<Banknote className="w-6 h-6" />}
-                />
+            <SidebarLink
+                href="/dashboard/plans"
+                label="Planos"
+                pathname={pathname}
+                isCollapsed={isCollapsed}
+                icon={<Banknote className="w-6 h-6" />}
+            />
           </nav>
         )}
 
@@ -106,7 +113,14 @@ export function SidebarDashboard({ children }: { children: React.ReactNode }) {
                   isCollapsed={isCollapsed}
                   icon={<CalendarCheck2 className="w-6 h-6" />}
                 />
-                <SidebarLink
+            <SidebarLink
+                href="/dashboard/clients"
+                label="Clientes"
+                pathname={pathname}
+                isCollapsed={isCollapsed}
+                icon={<Users className="w-6 h-6" />}
+            />
+            <SidebarLink
                   href="/dashboard/services"
                   label="Serviços"
                   pathname={pathname}
@@ -180,6 +194,13 @@ export function SidebarDashboard({ children }: { children: React.ReactNode }) {
                   pathname={pathname}
                   isCollapsed={isCollapsed}
                   icon={<CalendarCheck2 className="w-6 h-6" />}
+                />
+                <SidebarLink
+                    href="/dashboard/clients"
+                    label="Clientes"
+                    pathname={pathname}
+                    isCollapsed={isCollapsed}
+                    icon={<Users className="w-6 h-6" />}
                 />
 
                 <SidebarLink

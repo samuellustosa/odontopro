@@ -44,7 +44,7 @@ model Reminder {
   user        User @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
 
 }
@@ -62,7 +62,7 @@ model Service {
   appointment Appointment[]
 
   createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
 
 
@@ -80,13 +80,26 @@ model Subscription {
   priceid   String
 
   createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
   userId String @unique
   user User @relation(fields: [userId], references: [id])
 
 }
 
+
+model Client {
+  id        String    @id @default(uuid())
+  name      String
+  email     String
+  phone     String?
+  cpf_cnpj  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+}
 
 
 model ChatbotConfig {
@@ -105,34 +118,35 @@ model ChatbotConfig {
 
 
 model User {
-  id            String          @id @default(cuid())
-  name          String?
-  email         String          @unique
-  emailVerified DateTime?
-  image         String?
-  address       String?         @default("")
-  phone         String?         @default("")
-  status        Boolean         @default(true)
-  timezone      String?
+  id                 String           @id @default(cuid())
+  name               String?
+  email              String           @unique
+  emailVerified      DateTime?
+  image              String?
+  address            String?          @default("")
+  phone              String?          @default("")
+  status             Boolean          @default(true)
+  timezone           String?
   stripe_customer_id String?
-  times         String[] @default([])
-  chatbotConfig     ChatbotConfig?
+  times              String[]         @default([])
+  chatbotConfig      ChatbotConfig?
 
   subscription Subscription?
   services     Service[]
   reminders    Reminder[]
   appointments Appointment[]
+  clients      Client[] 
 
-
-
-  accounts      Account[]
-  sessions      Session[]
+  accounts         Account[]
+  sessions         Session[]
   // Optional for WebAuthn support
-  Authenticator Authenticator[]
+  Authenticator    Authenticator[]
  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+
  
 model Account {
   userId            String
@@ -154,6 +168,8 @@ model Account {
  
   @@id([provider, providerAccountId])
 }
+
+
  
 model Session {
   sessionToken String   @unique
