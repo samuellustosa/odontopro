@@ -30,6 +30,7 @@ import { ButtonPickerAppointment } from './button-date'
 export type AppointmentWithService = Prisma.AppointmentGetPayload<{
   include: {
     service: true,
+    client: true, // Adicione esta linha
   }
 }>
 
@@ -155,9 +156,9 @@ const occupantMap: Record<string, AppointmentWithService> = {}
                       >
                         <div className='w-16 text-sm font-semibold'>{slot}</div>
                         <div className='flex-1 text-sm'>
-                          <div className='font-semibold'>{occupant.name}</div>
+                          <div className='font-semibold'>{occupant.client.name}</div>
                           <div className='text-sm text-gray-500'>
-                            {occupant.phone}
+                            {occupant.client.phone}
                           </div>
                         </div>
 

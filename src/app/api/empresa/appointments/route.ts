@@ -33,8 +33,9 @@ export const GET = auth(async function GET(request) {
     // Criar uma data formatada 
     const [year, month, day] = dateString.split("-").map(Number)
 
-    const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
-    const endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
+    // CORRIGIDO: Removido Date.UTC para usar o fuso horário local
+    const startDate = new Date(year, month - 1, day, 0, 0, 0, 0)
+    const endDate = new Date(year, month - 1, day, 23, 59, 59, 999)
 
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -46,6 +47,7 @@ export const GET = auth(async function GET(request) {
       },
       include: {
         service: true,
+        client: true, // Adicionado para incluir os dados do cliente
       }
     })
 
@@ -55,7 +57,4 @@ export const GET = auth(async function GET(request) {
     console.log(err);
     return NextResponse.json({ error: "Falha ao buscar agendamentos" }, { status: 400 })
   }
-
-
-
 }) as any;

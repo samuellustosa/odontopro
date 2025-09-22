@@ -37,9 +37,9 @@ export function DialogAppointment({ appointment }: DialogAppointmentProps) {
               month: "2-digit",
               day: "2-digit",
             }).format(new Date(appointment.appointmentDate))}</p>
-            <p><span className="font-semibold">Nome:</span> {appointment.name}</p>
-            <p><span className="font-semibold">Telefone:</span> {appointment.phone}</p>
-            <p><span className="font-semibold">Email:</span> {appointment.email}</p>
+            <p><span className="font-semibold">Nome:</span> {appointment.client.name}</p>
+            <p><span className="font-semibold">Telefone:</span> {appointment.client.phone}</p>
+            <p><span className="font-semibold">Email:</span> {appointment.client.email}</p>
 
             <section className="bg-gray-200 mt-4 p-2 rounded-md">
                 <p><span className="font-semibold">Serviço:</span> {appointment.service.name}</p>
