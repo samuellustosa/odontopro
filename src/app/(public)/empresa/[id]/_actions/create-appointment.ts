@@ -27,26 +27,6 @@ export async function createNewAppointment(formData: FormSchema) {
 
   try {
 
-    // 1. Encontrar ou criar o cliente
-    let client = await prisma.client.findFirst({
-      where: {
-        email: formData.email,
-        userId: formData.empresaId,
-      }
-    })
-
-    if (!client) {
-      client = await prisma.client.create({
-        data: {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          userId: formData.empresaId,
-        }
-      })
-    }
-
-
     const selectedDate = new Date(formData.date)
 
     const year = selectedDate.getFullYear();
@@ -54,6 +34,8 @@ export async function createNewAppointment(formData: FormSchema) {
     const day = selectedDate.getDate();
 
     const appointmentDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
+
+    console.log("DATA AGENDADA: ", appointmentDate)
 
     const newAppointment = await prisma.appointment.create({
       data: {
@@ -64,7 +46,7 @@ export async function createNewAppointment(formData: FormSchema) {
         appointmentDate: appointmentDate,
         serviceId: formData.serviceId,
         userId: formData.empresaId,
-        clientId: client.id, // Use o ID do cliente aqui
+        clientId: formData.empresaId
       }
     })
 
