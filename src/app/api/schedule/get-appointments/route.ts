@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
     const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
     const endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
 
+    console.log("START DATE: ", startDate)
+    console.log("END DATE: ", endDate)
+
     const user = await prisma.user.findFirst({
       where: {
         id: userId
