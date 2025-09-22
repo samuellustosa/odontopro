@@ -7,7 +7,7 @@ import { TRIAL_DAYS } from '@/utils/permissions/trial-limits'
 
 
 export async function checkSubscriptionExpired(session: Session): Promise<ResultPermissionProp> {
-  const trailEndDate = addDays(session?.user?.createAt!, TRIAL_DAYS)
+  const trailEndDate = addDays(session?.user?.createdAt!, TRIAL_DAYS)
 
 
   if (isAfter(new Date(), trailEndDate)) {

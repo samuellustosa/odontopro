@@ -16,7 +16,7 @@ declare module 'next-auth' {
     address?: string
     phone?: string
     status: boolean
-    createAt: string
+    createdAt: string
     updateAt: string
   }
 }
