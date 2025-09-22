@@ -29,8 +29,6 @@ model Appointment {
   userId    String //ids das clinicas
   user      User @relation(fields: [userId], references: [id])
 
-  clientId String
-  client Client @relation(fields: [clientId], references: [id])
 
   createdAt DateTime @default(now())
   updateAt  DateTime @updatedAt
@@ -90,21 +88,6 @@ model Subscription {
 }
 
 
-model Client {
-  id        String    @id @default(uuid())
-  name      String
-  email     String
-  phone     String?
-  cpf_cnpj  String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime @updatedAt
-
-  userId    String
-  user      User      @relation(fields: [userId], references: [id])
-  appointments Appointment[]
-}
-
-
 model ChatbotConfig {
   id            String   @id @default(uuid())
   name          String   @default("Assistente Virtual")
@@ -137,7 +120,6 @@ model User {
   services     Service[]
   reminders    Reminder[]
   appointments Appointment[]
-  clients      Client[]
 
   accounts         Account[]
   sessions         Session[]

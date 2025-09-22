@@ -45,8 +45,7 @@ export async function createNewAppointment(formData: FormSchema) {
         time: formData.time,
         appointmentDate: appointmentDate,
         serviceId: formData.serviceId,
-        userId: formData.empresaId,
-        clientId: formData.empresaId
+        userId: formData.empresaId
       }
     })
 
