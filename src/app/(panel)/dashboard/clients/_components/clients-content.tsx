@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Plus } from 'lucide-react';
-import { getClients } from '../_actions/_data-access/get-clients';
+import { getClients } from '../_data-access/get-clients';
 import { useQuery } from '@tanstack/react-query';
 import { ClientsList } from './clients-list';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
