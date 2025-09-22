@@ -1,7 +1,7 @@
 import getSession from '@/lib/getSession';
 import { redirect } from 'next/navigation';
 import { getClientWithDetails } from './_data-access/get-client-with-details';
-import { ClientContent } from './_components/clients-content';
+import { ClientContent } from './_components/client-content';
 
 export default async function ClientPage({ params }: { params: { id: string } }) {
     const session = await getSession();
@@ -17,6 +17,6 @@ export default async function ClientPage({ params }: { params: { id: string } })
     }
 
     return (
-        <ClientContent client={client} />
+        <ClientContent client={client} userId={session.user?.id!} />
     );
 }
