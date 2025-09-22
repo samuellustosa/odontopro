@@ -68,9 +68,9 @@ export function ClientContent({ client, userId }: ClientContentProps) {
                     </div>
                 </CardHeader>
                 <CardContent className="mt-4">
-                    <p className="text-gray-600">**Email:** {client.email}</p>
-                    <p className="text-gray-600">**Telefone:** {formatPhone(client.phone)}</p>
-                    <p className="text-gray-600">**Cliente desde:** {format(new Date(client.createdAt), 'dd/MM/yyyy')}</p>
+                    <p className="text-gray-600">Email: {client.email}</p>
+                    <p className="text-gray-600">Telefone: {formatPhone(client.phone)}</p>
+                    <p className="text-gray-600">Cliente desde: {format(new Date(client.createdAt), 'dd/MM/yyyy')}</p>
                 </CardContent>
             </Card>
 
