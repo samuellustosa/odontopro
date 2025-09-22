@@ -10,8 +10,9 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@/component
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getClientNotes } from '../_data-access/get-client-notes';
 import { createClientNote } from '../_actions/create-client-note';
+import { deleteClientNote } from '../_actions/delete-client-note';
 import { toast } from 'sonner';
-import { NotebookPen, NotebookText } from 'lucide-react';
+import { NotebookPen, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 const noteSchema = z.object({
@@ -53,11 +54,28 @@ export function ClientNotes({ clientId, userId }: ClientNotesProps) {
       } else {
         toast.success(data.data);
         form.reset();
+        // Garante que a lista seja revalidada
         queryClient.invalidateQueries({ queryKey: ["client-notes", clientId] });
       }
     },
     onError: () => {
       toast.error("Falha ao adicionar nota.");
+    },
+  });
+  
+  const deleteNoteMutation = useMutation({
+    mutationFn: (noteId: string) => deleteClientNote({ noteId, clientId }),
+    onSuccess: (data) => {
+      if(data.error) {
+        toast.error(data.error);
+      } else {
+        toast.success(data.data);
+        // Garante que a lista seja revalidada
+        queryClient.invalidateQueries({ queryKey: ["client-notes", clientId] });
+      }
+    },
+    onError: () => {
+      toast.error("Falha ao excluir nota.");
     },
   });
 
@@ -98,11 +116,21 @@ export function ClientNotes({ clientId, userId }: ClientNotesProps) {
             <p>Carregando notas...</p>
           ) : notes && notes.length > 0 ? (
             notes.map((note) => (
-              <div key={note.id} className="bg-gray-100 p-3 rounded-md text-sm">
-                <p>{note.content}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Adicionado em: {format(new Date(note.createdAt), 'dd/MM/yyyy')}
-                </p>
+              <div key={note.id} className="flex items-center justify-between bg-gray-100 p-3 rounded-md text-sm">
+                <div>
+                  <p>{note.content}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Adicionado em: {format(new Date(note.createdAt), 'dd/MM/yyyy')}
+                  </p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => deleteNoteMutation.mutate(note.id)}
+                  disabled={deleteNoteMutation.isPending}
+                >
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                </Button>
               </div>
             ))
           ) : (

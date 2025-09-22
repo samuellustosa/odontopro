@@ -1,7 +1,7 @@
 import getSession from '@/lib/getSession'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { ClientsContent } from './_components/clients-content'
+import { ClientsContent } from './_components/clients-list'
 
 export default async function Clients() {
   const session = await getSession()

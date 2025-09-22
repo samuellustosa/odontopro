@@ -13,7 +13,7 @@ import { getAllClients } from '../_data-access/get-all-clients'
 import { DialogClient } from './dialog-client'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { deleteClient } from '../_actions/delete-client'
-import Link from 'next/link'
+import Link from 'next/link' // Importe o componente Link do Next.js
 
 interface ClientsContentProps {
   userId: string;
@@ -100,29 +100,39 @@ export function ClientsContent({ userId }: ClientsContentProps) {
                 <p>Carregando clientes...</p>
               ) : clients && clients.length > 0 ? (
                 clients.map((client) => (
-                  <article key={client.id} className='flex items-center justify-between py-2 border-t last:border-b'>
-                    <div className='flex-1 text-sm'>
-                      <Link href={`/dashboard/clients/${client.id}`} className='hover:text-blue-600 transition-colors'>
+                  <article key={client.id} className='relative group'> {/* Adicionado um container relativo para o Link */}
+                    <Link 
+                      href={`/dashboard/clients/${client.id}`}
+                      className='absolute inset-0 z-10' // Adicionado o Link sobre todo o artigo
+                    />
+                    <div className='flex items-center justify-between py-2 border-t last:border-b group-hover:bg-gray-50 transition-colors'>
+                      <div className='flex-1 text-sm'>
                         <div className='font-semibold'>{client.name}</div>
-                      </Link>
-                      <div className='text-sm text-gray-500'>{client.email}</div>
-                      <div className='text-sm text-gray-500'>{client.phone}</div>
-                    </div>
-                    <div className='ml-auto flex items-center gap-2'>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditClient(client)}
-                      >
-                        <Pencil className='w-4 h-4' />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteClient(client.id)}
-                      >
-                        <X className='w-4 h-4' />
-                      </Button>
+                        <div className='text-sm text-gray-500'>{client.email}</div>
+                        <div className='text-sm text-gray-500'>{client.phone}</div>
+                      </div>
+                      <div className='ml-auto flex items-center gap-2 relative z-20'> {/* Botões com z-index maior para serem clicáveis */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.preventDefault(); // Impede o clique no Link
+                            handleEditClient(client);
+                          }}
+                        >
+                          <Pencil className='w-4 h-4' />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.preventDefault(); // Impede o clique no Link
+                            handleDeleteClient(client.id);
+                          }}
+                        >
+                          <X className='w-4 h-4' />
+                        </Button>
+                      </div>
                     </div>
                   </article>
                 ))

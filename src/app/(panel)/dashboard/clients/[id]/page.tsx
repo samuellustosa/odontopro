@@ -3,16 +3,18 @@ import { redirect } from 'next/navigation';
 import { getClientWithDetails } from './_data-access/get-client-with-details';
 import { ClientContent } from './_components/client-content';
 
-export default async function ClientPage({ params }: { params: { id: string } }) {
+export default async function ClientPage({ params }: { params: Promise<{ id: string }> }) {
     const session = await getSession();
     if (!session) {
         redirect('/');
     }
+    
+    // Use 'await' aqui para garantir que o 'id' seja resolvido antes de ser usado
+    const { id } = await params;
 
-    const { data: client, error } = await getClientWithDetails({ clientId: params.id });
+    const { data: client, error } = await getClientWithDetails({ clientId: id });
 
     if (error || !client) {
-        // Redirecionar para a página de clientes se o cliente não for encontrado
         redirect('/dashboard/clients');
     }
 
