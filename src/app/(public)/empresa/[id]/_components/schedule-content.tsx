@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import Image from "next/image"
-import imgTest from '../../../../../../public/foto1.png'
+import imgTest from '../../../../../../public/foto1.jpg'
 import { MapPin } from "lucide-react"
 import { Prisma } from "@/generated/prisma"
 import { useAppointmentForm, AppointmentFormData } from './schedule-form'
