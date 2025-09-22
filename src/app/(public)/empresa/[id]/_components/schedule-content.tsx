@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import Image from "next/image"
-import imgTest from '../../../../../../public/foto1.jpg'
+import imgTest from '../../../../../../public/foto1.png'
 import { MapPin } from "lucide-react"
 import { Prisma } from "@/generated/prisma"
 import { useAppointmentForm, AppointmentFormData } from './schedule-form'
@@ -58,9 +58,19 @@ export function ScheduleContent({ empresa }: ScheduleContentProps) {
       const dateString = date.toISOString().split("T")[0]
       const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/schedule/get-appointments?userId=${empresa.id}&date=${dateString}`)
 
+      if (!response.ok) {
+        console.log('Error fetching appointments:', await response.json());
+        setLoadingSlots(false);
+        return [];
+      }
+      
       const json = await response.json();
       setLoadingSlots(false);
-      return json; // Retornar o array com horarios que já tem bloqueado desse Dia e dessa clinica.
+      // Garantir que a resposta é um array antes de retornar
+      if (Array.isArray(json)) {
+          return json;
+      }
+      return [];
 
     } catch (err) {
       console.log(err)
@@ -138,7 +148,7 @@ export function ScheduleContent({ empresa }: ScheduleContentProps) {
             <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-white mb-8">
               <Image
                 src={empresa.image ? empresa.image : imgTest}
-                alt="Foto da clinica"
+                alt="Foto da empresa"
                 className="object-cover"
                 fill
               />
