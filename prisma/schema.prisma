@@ -16,70 +16,81 @@ datasource db {
 
 
 model Appointment {
-  id        String @id @default(uuid())
+  id              String   @id @default(uuid())
   appointmentDate DateTime //data agendamento
-  time      String
+  time            String
 
-  clientId  String
-  client    Client @relation(fields: [clientId], references: [id])
+  clientId        String
+  client          Client   @relation(fields: [clientId], references: [id])
 
-  serviceId String
-  service  Service @relation(fields: [serviceId], references: [id])
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id])
 
-  userId    String //ids das
-  user      User @relation(fields: [userId], references: [id])
+  userId          String //ids das
+  user            User     @relation(fields: [userId], references: [id])
 
-
-  createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updateAt        DateTime @updatedAt
 }
 
 model Client {
-  id           String @id @default(uuid())
-  name         String
-  email        String
-  phone        String
+  id          String        @id @default(uuid())
+  name        String
+  email       String
+  phone       String
   appointments Appointment[]
+  notes        ClientNote[]
 
-  userId       String
-  user         User   @relation(fields: [userId], references: [id])
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   @@unique([email, userId], map: "Client_email_key")
 }
 
+model ClientNote {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id])
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
 
 model Reminder {
-  id        String @id @default(uuid())
-  description      String
+  id          String   @id @default(uuid())
+  description String
 
 
   userId      String
-  user        User @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
 
 }
 
 model Service {
-  id        String @id @default(uuid())
-  name      String
-  price     Int
-  duration  Int
-  status    Boolean @default(true)
+  id          String        @id @default(uuid())
+  name        String
+  price       Int
+  duration    Int
+  status      Boolean       @default(true)
 
-  userId    String
-  user      User @relation(fields: [userId], references: [id])
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
 
   appointment Appointment[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
 
 }
@@ -90,7 +101,7 @@ enum Plan {
 }
 
 model Subscription {
-  id        String @id @default(uuid())
+  id        String   @id @default(uuid())
   status    String
   plan      Plan
   priceid   String
@@ -98,53 +109,54 @@ model Subscription {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  userId String @unique
-  user User @relation(fields: [userId], references: [id])
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
 
 }
 
 
 model ChatbotConfig {
-  id            String   @id @default(uuid())
-  name          String   @default("Assistente Virtual")
-  personality   String   @default("Gentil, amigavel, educado, profissional")
-  enabled       Boolean  @default(true)
+  id          String   @id @default(uuid())
+  name        String   @default("Assistente Virtual")
+  personality String   @default("Gentil, amigavel, educado, profissional")
+  enabled     Boolean  @default(true)
 
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id])
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 
 
 model User {
-  id                 String           @id @default(cuid())
+  id                 String          @id @default(cuid())
   name               String?
-  email              String           @unique
+  email              String          @unique
   emailVerified      DateTime?
   image              String?
-  address            String? @default("")
-  phone              String? @default("")
-  status             Boolean          @default(true)
+  address            String?         @default("")
+  phone              String?         @default("")
+  status             Boolean         @default(true)
   timezone           String?
   stripe_customer_id String?
-  times              String[]         @default([])
+  times              String[]        @default([])
   chatbotConfig      ChatbotConfig?
-  subscription Subscription?
-  services     Service[]
-  reminders    Reminder[]
-  appointments Appointment[]
-  clients      Client[]
+  subscription       Subscription?
+  services           Service[]
+  reminders          Reminder[]
+  appointments       Appointment[]
+  clients            Client[]
+  clientNotes        ClientNote[]
 
-  accounts         Account[]
-  sessions         Session[]
+  accounts           Account[]
+  sessions           Session[]
   // Optional for WebAuthn support
-  Authenticator    Authenticator[]
+  Authenticator      Authenticator[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 }
 
 
@@ -161,10 +173,10 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
 }
@@ -176,8 +188,8 @@ model Session {
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model VerificationToken {
@@ -198,7 +210,7 @@ model Authenticator {
   credentialDeviceType String
   credentialBackedUp   Boolean
   transports           String?
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, credentialID])
 }
