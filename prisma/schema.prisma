@@ -17,21 +17,37 @@ datasource db {
 
 model Appointment {
   id        String @id @default(uuid())
-  name      String
-  email     String
-  phone     String
   appointmentDate DateTime //data agendamento
   time      String
+
+  clientId  String
+  client    Client @relation(fields: [clientId], references: [id])
 
   serviceId String
   service  Service @relation(fields: [serviceId], references: [id])
 
-  userId    String //ids das clinicas
+  userId    String //ids das
   user      User @relation(fields: [userId], references: [id])
 
 
   createdAt DateTime @default(now())
   updateAt  DateTime @updatedAt
+}
+
+model Client {
+  id           String @id @default(uuid())
+  name         String
+  email        String
+  phone        String
+  appointments Appointment[]
+
+  userId       String
+  user         User   @relation(fields: [userId], references: [id])
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([email, userId], map: "Client_email_key")
 }
 
 
@@ -120,6 +136,7 @@ model User {
   services     Service[]
   reminders    Reminder[]
   appointments Appointment[]
+  clients      Client[]
 
   accounts         Account[]
   sessions         Session[]

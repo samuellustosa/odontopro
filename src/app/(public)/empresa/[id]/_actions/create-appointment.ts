@@ -26,7 +26,29 @@ export async function createNewAppointment(formData: FormSchema) {
   }
 
   try {
+    // 1. Procurar por um cliente existente com o mesmo e-mail para esta empresa
+    let client = await prisma.client.findUnique({
+      where: {
+        email_userId: {
+          email: formData.email,
+          userId: formData.empresaId
+        }
+      }
+    });
 
+    // 2. Se o cliente não existir, criar um novo
+    if (!client) {
+      client = await prisma.client.create({
+        data: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          userId: formData.empresaId,
+        }
+      });
+    }
+
+    // 3. Criar o agendamento e vinculá-lo ao cliente
     const selectedDate = new Date(formData.date)
 
     const year = selectedDate.getFullYear();
@@ -35,17 +57,13 @@ export async function createNewAppointment(formData: FormSchema) {
 
     const appointmentDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
 
-    console.log("DATA AGENDADA: ", appointmentDate)
-
     const newAppointment = await prisma.appointment.create({
       data: {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
         time: formData.time,
         appointmentDate: appointmentDate,
         serviceId: formData.serviceId,
-        userId: formData.empresaId
+        userId: formData.empresaId,
+        clientId: client.id,
       }
     })
 
@@ -60,6 +78,4 @@ export async function createNewAppointment(formData: FormSchema) {
       error: "Erro ao cadastrar agendamento"
     }
   }
-
-
 }
