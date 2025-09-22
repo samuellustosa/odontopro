@@ -1,4 +1,4 @@
-// samuellustosa/odontopro/odontopro-0fcabb6a8bff4855fe3e59920aa68cf7e65051fe/src/app/(panel)/dashboard/clients/_actions/delete-client.ts
+// samuellustosa/odontopro/odontopro-0fcabb6a8bff4855fe3e59920aa68cf7e65051fe/src/app/(panel)/dashboard/clients/[id]/_actions/delete-client-note.ts
 "use server"
 import prisma from "@/lib/prisma"
 import { z } from 'zod'
@@ -6,12 +6,13 @@ import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
 const formSchema = z.object({
-    id: z.string().min(1, "O ID do cliente é obrigatório"),
+    noteId: z.string().min(1, "O ID da nota é obrigatório"),
+    clientId: z.string().min(1, "O ID do cliente é obrigatório"),
 });
 
 type FormSchema = z.infer<typeof formSchema>;
 
-export async function deleteClient(formData: FormSchema) {
+export async function deleteClientNote(formData: FormSchema) { // Nome correto da função
     const session = await auth();
     if (!session?.user?.id) {
         return { error: "Usuário não encontrado" };
@@ -23,14 +24,17 @@ export async function deleteClient(formData: FormSchema) {
     }
 
     try {
-        await prisma.client.delete({
-            where: { id: formData.id, userId: session.user.id },
+        await prisma.clientNote.delete({
+            where: {
+                id: formData.noteId,
+                userId: session.user.id,
+                clientId: formData.clientId
+            }
         });
-
-        revalidatePath("/dashboard/clients");
-        return { data: "Cliente excluído com sucesso" };
+        revalidatePath(`/dashboard/clients/${formData.clientId}`);
+        return { data: "Nota excluída com sucesso!" };
     } catch (err) {
         console.error(err);
-        return { error: "Falha ao excluir cliente" };
+        return { error: "Falha ao excluir nota" };
     }
 }
