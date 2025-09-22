@@ -1,3 +1,4 @@
+// src/app/api/empresa/appointments/route.ts
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { NextResponse, NextRequest } from 'next/server'
@@ -34,8 +35,8 @@ export const GET = auth(async function GET(request) {
     const [year, month, day] = dateString.split("-").map(Number)
 
     // CORRIGIDO: Removido Date.UTC para usar o fuso horário local
-    const startDate = new Date(year, month - 1, day, 0, 0, 0, 0)
-    const endDate = new Date(year, month - 1, day, 23, 59, 59, 999)
+    const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
+    const endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
 
     const appointments = await prisma.appointment.findMany({
       where: {

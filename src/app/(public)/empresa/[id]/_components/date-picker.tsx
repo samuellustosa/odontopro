@@ -1,3 +1,4 @@
+// src/app/(public)/empresa/[id]/_components/date-picker.tsx
 "use client"
 import { useState } from 'react'
 import DatePicker, { registerLocale } from 'react-datepicker'
@@ -19,9 +20,10 @@ export function DateTimePicker({ initialDate, className, minDate, onChange }: Da
 
   function handleChange(date: Date | null) {
     if (date) {
-      console.log(date);
+      // Converte para UTC antes de chamar a função onChange
+      const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
       setStartDate(date);
-      onChange(date)
+      onChange(utcDate);
     }
   }
 

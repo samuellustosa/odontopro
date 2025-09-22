@@ -1,3 +1,4 @@
+// src/app/(public)/empresa/[id]/_actions/create-appointment.ts
 "use server"
 
 import prisma from '@/lib/prisma'
@@ -51,12 +52,12 @@ export async function createNewAppointment(formData: FormSchema) {
     // 3. Criar o agendamento e vinculá-lo ao cliente
     const selectedDate = new Date(formData.date)
 
-    const year = selectedDate.getFullYear();
-    const month = selectedDate.getMonth();
-    const day = selectedDate.getDate();
+    const year = selectedDate.getUTCFullYear();
+    const month = selectedDate.getUTCMonth();
+    const day = selectedDate.getUTCDate();
 
     // CORRIGIDO: Removido Date.UTC para salvar no fuso horário local
-    const appointmentDate = new Date(year, month, day, 0, 0, 0, 0)
+    const appointmentDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
 
     const newAppointment = await prisma.appointment.create({
       data: {
