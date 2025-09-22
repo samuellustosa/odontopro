@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   if (!userId || userId === "null" || !dateParam || dateParam === "null") {
     return NextResponse.json({
-      error: "Nenhum agendamento encotnrado"
+      error: "Nenhum agendamento encontrado"
     }, {
       status: 400
     })
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
   try {
     // Converte a data recebida em um objeto Date
     const [year, month, day] = dateParam.split("-").map(Number)
+    // CORREÇÃO: subtrair 1 do mês para o formato UTC
     const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
     const endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
 
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({
-        error: "Nenhum agendamento encotnrado"
+        error: "Nenhum agendamento encontrado"
       }, {
         status: 400
       })
@@ -66,24 +67,18 @@ export async function GET(request: NextRequest) {
           }
         }
       }
-
     }
-
 
     const blockedtimes = Array.from(blockedSlots);
 
-    console.log("blockedtimes: ", blockedtimes)
-
     return NextResponse.json(blockedtimes)
-
 
   } catch (err) {
     console.log(err);
     return NextResponse.json({
-      error: "Nenhum agendamento encotnrado"
+      error: "Nenhum agendamento encontrado"
     }, {
       status: 400
     })
   }
-
 }

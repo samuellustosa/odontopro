@@ -1,5 +1,5 @@
+// src/app/(public)/empresa/[id]/_components/schedule-content.tsx
 "use client"
-
 
 import { useState, useCallback, useEffect } from 'react'
 import Image from "next/image"
@@ -25,9 +25,6 @@ type UserWithServiceAndSubscription = Prisma.UserGetPayload<{
     }
   }>
   
-
-
-
 interface ScheduleContentProps {
     empresa: UserWithServiceAndSubscription
 }
@@ -38,33 +35,30 @@ export interface TimeSlot {
   }
 
 export function ScheduleContent({ empresa }: ScheduleContentProps){
-
     const form = useAppointmentForm();
     const { watch } = form;
-
     const selectedDate = watch("date")
     const selectedServiceId = watch("serviceId")
   
-
     const [selectedTime, setSelectedTime] = useState("");
     const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
-
-    // Quais os horários bloqueados 01/02/2025 > ["15:00", "18:00"]
     const [blockedTimes, setBlockedTimes] = useState<string[]>([])
 
-
-    // Função que busca os horários bloqueados (via Fetch HTTP)
     const fetchBlockedTimes = useCallback(async (date: Date): Promise<string[]> => {
         setLoadingSlots(true);
         try {
             const dateString = date.toISOString().split("T")[0]
             const response = await fetch(`/api/schedule/get-appointments?userId=${empresa.id}&date=${dateString}`);
+            
+            if (!response.ok) {
+                setLoadingSlots(false);
+                return [];
+            }
+
             const json = await response.json();
             setLoadingSlots(false);
-            return json; // Retornar o array com horarios que já tem bloqueado desse Dia e dessa empresa.
-
-
+            return json;
         } catch (err) {
             console.log(err)
             setLoadingSlots(false);
@@ -74,32 +68,24 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
 
 
     useEffect(() => {
-
         if (selectedDate) {
-        fetchBlockedTimes(selectedDate).then((blocked) => {
-            setBlockedTimes(blocked)
-            const times = empresa.times || [];
+            fetchBlockedTimes(selectedDate).then((blocked) => {
+                setBlockedTimes(blocked)
+                const times = empresa.times || [];
+                const finalSlots = times.map((time) => ({
+                    time: time,
+                    available: !blocked.includes(time)
+                }))
 
-            const finalSlots = times.map((time) => ({
-                time: time,
-                available: !blocked.includes(time)
-            }))
-
-            setAvailableTimeSlots(finalSlots)
-
-            // Se o slot atual estiver indisponivel, limpamos a seleção
-
-            const stillAvailable = finalSlots.find(
-             (slot) => slot.time === selectedTime && slot.available
-            )
-
+                setAvailableTimeSlots(finalSlots)
+                const stillAvailable = finalSlots.find(
+                 (slot) => slot.time === selectedTime && slot.available
+                )
                 if (!stillAvailable) {
                    setSelectedTime("");
                 }
-
-        })
+            })
         }
-
     }, [selectedDate, empresa.times, fetchBlockedTimes, selectedTime])
 
 
@@ -120,17 +106,15 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
         if(response.error){
             toast.error(response.error)
             return;
-
-            }
-            toast.success("Consulta agendada com sucesso!")
-            form.reset();
-            setSelectedTime("")
+        }
+        toast.success("Consulta agendada com sucesso!")
+        form.reset();
+        setSelectedTime("")
     }
 
     return(
         <div className="min-h-screen flex flex-col">
             <div className="h-32 bg-emerald-500"/>
-
             <section className="container mx-auto px-4 -mt-16">
                 <div className="max-w-2xl mx-auto">
                     <article className="flex flex-col items-center">
@@ -155,15 +139,12 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
                     </article>
                 </div>
             </section>
-
             <section className="max-w-2xl mx-auto w-full mt-6">
-                {/* Formulário de agendamento */}
                 <Form {...form}>
                     <form
                     onSubmit={form.handleSubmit(handleRegisterAppointment)}
                     className="mx-2 space-y-6 bg-white p-6 border rounded-md shadow-sm"
                     >
-
                     <FormField
                         control={form.control}
                         name="name"
@@ -181,7 +162,6 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
                         </FormItem>
                         )}
                     />
-
                     <FormField
                         control={form.control}
                         name="email"
@@ -199,7 +179,6 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
                             </FormItem>
                         )}
                         />
-
                         <FormField
                         control={form.control}
                         name="phone"
@@ -221,7 +200,6 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
                             </FormItem>
                         )}
                         />
-
                         <FormField
                         control={form.control}
                         name="date"
@@ -244,7 +222,6 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
                             </FormItem>
                         )}
                         />
-
                         <FormField
                         control={form.control}
                         name="serviceId"
@@ -272,8 +249,6 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
                             </FormItem>
                         )}
                         />
-
-                        {/* Horários disponíveis */}
                         {selectedServiceId && (
                             <div className="space-y-2">
                                 <Label className="font-semibold">Horários disponíveis:</Label>
@@ -306,7 +281,6 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
                                 </div>
                             </div>
                         )}
-
                         {empresa.status ? (
                             <Button
                                 type="submit"
@@ -320,13 +294,9 @@ export function ScheduleContent({ empresa }: ScheduleContentProps){
                                 Estamos fechados no momento.
                             </p>
                             )}
-
                     </form>
                 </Form>
-
             </section>
-            
-
         </div>
     )
 }
