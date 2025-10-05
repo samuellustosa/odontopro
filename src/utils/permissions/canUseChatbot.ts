@@ -1,7 +1,7 @@
 "use server";
 
 import { Session } from "next-auth";
-import { Subscription } from "@prisma/client";
+import { Subscription } from "@/generated/prisma"; // Caminho de importação corrigido
 import { ResultPermissionProp } from "./canPermission";
 import { PLANS } from "../plans";
 
