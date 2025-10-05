@@ -1,20 +1,6 @@
 // src/app/api/whatsapp/connect/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
-// Simulação de como a API de Mensagens retornaria o QR Code
-async function getWhatsappQrCode(userId: string): Promise<{ qrCodeUrl: string | null, error: string | null }> {
-    // Implemente a lógica real de chamada à API de Mensagens (Evolution API, por exemplo) para gerar o QR code.
-    // A API deve retornar uma URL para a imagem do QR Code.
-    // O `userId` pode ser usado para identificar a instância da sua empresa.
-    console.log(`Gerando QR Code para o usuário: ${userId}`);
-    
-    // Simulação da resposta da API
-    // Substitua com a sua lógica de chamada real
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=https://sua-api.com/connect/${userId}`;
-    
-    return { qrCodeUrl, error: null };
-}
-
 export async function POST(req: NextRequest) {
     const { userId } = await req.json();
 
@@ -22,17 +8,100 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "ID do usuário não fornecido." }, { status: 400 });
     }
 
+    // Seu URL do Ngrok (Substitua se ele mudar!)
+    const ngrokUrl = `https://carmelia-dermatophytic-royally.ngrok-free.app`;
+    
     try {
-        const result = await getWhatsappQrCode(userId);
+        const evolutionApiUrl = `${process.env.EVOLUTION_API_URL}/instance/create`;
+        const evolutionApiKey = process.env.EVOLUTION_API_KEY;
+        const evolutionInstanceName = `instance-${userId}`; 
 
-        if (result.error) {
-            return NextResponse.json({ error: result.error }, { status: 500 });
+        const payload = {
+            instanceName: evolutionInstanceName,
+            token: "",
+            qrcode: true,
+            number: "",
+            integration: "WHATSAPP-BAILEYS",
+            rejectCall: true,
+            msgCall: "Olá, não podemos atender chamadas. Por favor, envie uma mensagem!",
+            groupsIgnore: true,
+            alwaysOnline: true,
+            readMessages: true,
+            readStatus: true,
+            syncFullHistory: true,
+            proxyHost: "",
+            proxyPort: "",
+            proxyProtocol: "",
+            proxyUsername: "",
+            proxyPassword: "",
+            webhook: {
+                url: `${ngrokUrl}/api/whatsapp/webhook`,
+                byEvents: true,
+                base64: true,
+                headers: {
+                    authorization: "",
+                    "Content-Type": "application/json"
+                },
+                events: [
+                    "QRCODE_UPDATED", 
+                    "MESSAGES_UPSERT"
+                ]
+            },
+            rabbitmq: {
+                enabled: false,
+                events: []
+            },
+            sqs: {
+                enabled: false,
+                events: []
+            },
+            chatwootAccountId: 0,
+            chatwootToken: "",
+            chatwootUrl: "",
+            chatwootSignMsg: false,
+            chatwootReopenConversation: false,
+            chatwootConversationPending: false,
+            chatwootImportContacts: false,
+            chatwootNameInbox: "",
+            chatwootMergeBrazilContacts: false,
+            chatwootImportMessages: false,
+            chatwootDaysLimitImportMessages: 0,
+            chatwootOrganization: "",
+            chatwootLogo: ""
+        };
+
+        const response = await fetch(evolutionApiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': evolutionApiKey as string,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        const responseBody = await response.json();
+        
+        console.log('Status HTTP da resposta:', response.status);
+        console.log('Resposta completa da Evolution API:', responseBody);
+
+        if (!response.ok) {
+            const errorMessage = responseBody.message 
+                ? responseBody.message.toString() 
+                : "A requisição foi rejeitada. Verifique se o EVOLUTION_API_KEY no .env está correto e se a Evolution API está rodando na porta 8081.";
+
+            return NextResponse.json({ error: errorMessage || "Falha ao gerar QR Code." }, { status: 500 });
+        }
+        
+        if (!responseBody.instance || !responseBody.instance.qrCode) {
+             return NextResponse.json({ error: "Instância criada, mas o QR Code não foi retornado na resposta." }, { status: 500 });
         }
 
-        return NextResponse.json({ qrCodeUrl: result.qrCodeUrl });
+        const qrCodeUrl = responseBody.instance.qrCode;
+
+        return NextResponse.json({ qrCodeUrl });
 
     } catch (err) {
         console.error('Erro ao gerar QR Code:', err);
-        return NextResponse.json({ error: "Falha interna ao gerar QR Code." }, { status: 500 });
+        return NextResponse.json({ error: "Falha de conexão com a API." }, { status: 500 });
     }
 }
