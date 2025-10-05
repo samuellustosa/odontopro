@@ -12,14 +12,55 @@ interface WebhookMessage {
     fromMe: boolean;
 }
 
-// Simulação de chamada ao GPT
-async function getGPTResponse(prompt: string, personality: string, context: any) {
+// Definindo os tipos para a resposta do GPT
+interface GPTResponseDefault {
+    reply: string;
+    action: null;
+}
+
+interface GPTResponseCreateAppointment {
+    reply: string;
+    action: 'create_appointment';
+    data: {
+        date: Date;
+        time: string;
+        serviceId: string;
+        name: string;
+        email: string;
+        phone: string;
+    };
+}
+
+type GPTResponse = GPTResponseDefault | GPTResponseCreateAppointment;
+
+
+// Simulação de chamada ao GPT com o novo tipo de retorno
+async function getGPTResponse(prompt: string, personality: string, context: any): Promise<GPTResponse> {
     // Implemente a lógica real de chamada à API do GPT aqui
     console.log(`Chamando GPT com prompt: ${prompt}`);
     console.log(`Personalidade do bot: ${personality}`);
     console.log('Contexto:', context);
     
     // Retorna uma resposta simulada para demonstração
+    // Para fins de teste, você pode simular um agendamento retornando um objeto GPTResponseCreateAppointment
+    
+    // Exemplo de retorno para agendamento (descomente para testar)
+    /*
+    return {
+        reply: "Consegui coletar todas as informações e já agendei o serviço.",
+        action: 'create_appointment',
+        data: {
+            date: new Date(),
+            time: "10:00",
+            serviceId: "id-do-servico-aqui",
+            name: "João da Silva",
+            email: "joao@email.com",
+            phone: "11999999999"
+        }
+    };
+    */
+    
+    // Retorno padrão
     return {
         reply: "Olá! Como posso ajudá-lo a agendar seu atendimento?",
         action: null
@@ -65,6 +106,7 @@ export async function POST(req: NextRequest) {
     
     // Processar a resposta da IA
     if (gptResponse.action === 'create_appointment') {
+        // A propriedade 'data' agora é garantida pelo tipo `GPTResponseCreateAppointment`
         const { date, time, serviceId, name, email, phone } = gptResponse.data;
         const newAppointment = await createNewAppointment({
             empresaId: userId,
