@@ -1,4 +1,3 @@
-
 export type PlanDetailsProps = {
   maxServices: number;
 }
@@ -43,6 +42,7 @@ export const subscriptionPlans = [
       'Agendamentos ilimitados',
       'Suporte prioritário',
       'Relatórios avançados',
+      'Bot Conversacional'
     ]
   }
 ]

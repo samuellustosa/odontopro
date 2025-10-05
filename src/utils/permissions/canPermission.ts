@@ -4,9 +4,10 @@ import { auth } from "@/lib/auth";
 import { PlanDetailInfo } from "./get-plans";
 import prisma from "@/lib/prisma";
 import { canCreateService } from "./canCreateService";
+import { canUseChatbot } from "./canUseChatbot";
 
 export type PLAN_PROP = "BASIC" | "PROFESSIONAL" | "TRIAL" | "EXPIRED";
-type TypeCheck = "service";
+type TypeCheck = "service" | "chatbot";
 
 export interface ResultPermissionProp {
   hasPermission: boolean;
@@ -40,11 +41,11 @@ export async function canPermission({ type }: CanPermissionProps): Promise<Resul
 
   switch (type) {
     case "service":
-
       const permission = await canCreateService(subscription, session)
-
       return permission;
-
+    case "chatbot":
+      const chatbotPermission = await canUseChatbot(subscription, session)
+      return chatbotPermission;
     default:
       return {
         hasPermission: false,
@@ -53,5 +54,4 @@ export async function canPermission({ type }: CanPermissionProps): Promise<Resul
         plan: null,
       }
   }
-
 }

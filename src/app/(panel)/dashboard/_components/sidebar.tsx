@@ -95,6 +95,13 @@ export function SidebarDashboard({ children }: { children: React.ReactNode }) {
                 isCollapsed={isCollapsed}
                 icon={<Banknote className="w-6 h-6" />}
             />
+             <SidebarLink
+                href="/dashboard/chatbot"
+                label="Chatbot"
+                pathname={pathname}
+                isCollapsed={isCollapsed}
+                icon={<MessageSquareText className="w-6 h-6" />}
+            />
           </nav>
         )}
 
@@ -150,6 +157,13 @@ export function SidebarDashboard({ children }: { children: React.ReactNode }) {
                   icon={<Banknote className="w-6 h-6" />}
                 />
 
+                <SidebarLink
+                    href="/dashboard/chatbot"
+                    label="Chatbot"
+                    pathname={pathname}
+                    isCollapsed={isCollapsed}
+                    icon={<MessageSquareText className="w-6 h-6" />}
+                />
 
 
           </nav>
@@ -226,6 +240,13 @@ export function SidebarDashboard({ children }: { children: React.ReactNode }) {
                   pathname={pathname}
                   isCollapsed={isCollapsed}
                   icon={<Banknote className="w-6 h-6" />}
+                />
+                <SidebarLink
+                  href="/dashboard/chatbot"
+                  label="Chatbot"
+                  pathname={pathname}
+                  isCollapsed={isCollapsed}
+                  icon={<MessageSquareText className="w-6 h-6" />}
                 />
               </nav>
             </SheetContent>
