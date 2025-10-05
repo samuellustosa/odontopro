@@ -1,3 +1,4 @@
+// src/app/(panel)/dashboard/chatbot/_components/chatbot-content.tsx
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +15,8 @@ import { ChatbotConfig } from "@/generated/prisma";
 import { ResultPermissionProp } from "@/utils/permissions/canPermission";
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
-//import evolutionImg from "../../../../../public/logo-odonto.jpeg"; // AQUI FOI ALTERADO
+import { useState } from "react";
+import { QrCode } from "lucide-react";
 
 interface ChatbotContentProps {
   userId: string;
@@ -27,6 +29,8 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
     initialValues: config || undefined,
   });
 
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+
   async function onSubmit(values: ChatbotFormData) {
     const response = await updateChatbotConfig({
       ...values,
@@ -36,6 +40,31 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
       toast.error(response.error);
     } else {
       toast.success(response.data);
+    }
+  }
+
+  async function handleGenerateQrCode() {
+    try {
+      toast.info("Gerando QR Code...");
+      const response = await fetch('/api/whatsapp/connect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.qrCodeUrl) {
+        setQrCodeUrl(data.qrCodeUrl);
+        toast.success("QR Code gerado com sucesso!");
+      } else {
+        toast.error(data.error || "Falha ao gerar QR Code.");
+      }
+
+    } catch (err) {
+      toast.error("Erro na comunicação com a API.");
     }
   }
 
@@ -119,9 +148,17 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
             Conecte seu número de WhatsApp para que o bot possa começar a interagir com seus clientes.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center">
-          
-          <Button>Gerar QR Code de Conexão</Button>
+        <CardContent className="flex flex-col items-center justify-center space-y-4">
+          <Button onClick={handleGenerateQrCode} disabled={!config?.enabled}>
+            <QrCode className="w-4 h-4 mr-2" />
+            Gerar QR Code de Conexão
+          </Button>
+          {qrCodeUrl && (
+            <div className="border p-4 rounded-md">
+              <Image src={qrCodeUrl} alt="QR Code" width={256} height={256} />
+              <p className="mt-2 text-center text-sm text-gray-500">Escaneie com seu WhatsApp</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

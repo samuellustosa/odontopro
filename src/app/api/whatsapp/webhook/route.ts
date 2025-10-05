@@ -1,3 +1,4 @@
+// src/app/api/whatsapp/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { canPermission } from '@/utils/permissions/canPermission';
 import { getChatbotConfig } from '@/app/(panel)/dashboard/chatbot/_data-access/get-config';
@@ -34,43 +35,84 @@ interface GPTResponseCreateAppointment {
 type GPTResponse = GPTResponseDefault | GPTResponseCreateAppointment;
 
 
-// Simulação de chamada ao GPT com o novo tipo de retorno
+// Função para chamar a API do GPT e obter uma resposta estruturada
 async function getGPTResponse(prompt: string, personality: string, context: any): Promise<GPTResponse> {
-    // Implemente a lógica real de chamada à API do GPT aqui
-    console.log(`Chamando GPT com prompt: ${prompt}`);
-    console.log(`Personalidade do bot: ${personality}`);
-    console.log('Contexto:', context);
-    
-    // Retorna uma resposta simulada para demonstração
-    // Para fins de teste, você pode simular um agendamento retornando um objeto GPTResponseCreateAppointment
-    
-    // Exemplo de retorno para agendamento (descomente para testar)
-    /*
-    return {
-        reply: "Consegui coletar todas as informações e já agendei o serviço.",
-        action: 'create_appointment',
-        data: {
-            date: new Date(),
-            time: "10:00",
-            serviceId: "id-do-servico-aqui",
-            name: "João da Silva",
-            email: "joao@email.com",
-            phone: "11999999999"
+    // Implemente a lógica real de chamada à API do GPT aqui.
+    // Exemplo usando a API do OpenAI
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o', // Ou outro modelo de sua escolha
+                messages: [
+                    {
+                        role: 'system',
+                        content: `Você é um assistente virtual com a seguinte personalidade: "${personality}". Sua tarefa é auxiliar no agendamento de consultas. O contexto da empresa é: ${JSON.stringify(context)}. Você deve extrair as informações da conversa e, se todas as informações para um agendamento forem obtidas (nome, email, telefone, data, serviço, horário), retorne um JSON com a ação 'create_appointment'. Caso contrário, continue a conversa para obter as informações faltantes.`,
+                    },
+                    {
+                        role: 'user',
+                        content: prompt,
+                    },
+                ],
+                response_format: { type: "json_object" }, // Importante para garantir a resposta em JSON
+            }),
+        });
+
+        const gptData = await response.json();
+        // A API da OpenAI retorna a resposta dentro de 'choices[0].message.content'
+        const gptResponseContent = JSON.parse(gptData.choices[0].message.content);
+
+        if (response.ok && gptResponseContent) {
+            return gptResponseContent;
+        } else {
+            console.error('Erro ao chamar a API do GPT:', gptData);
+            return {
+                reply: "Desculpe, não consegui processar sua solicitação no momento. Poderia tentar novamente?",
+                action: null
+            };
         }
-    };
-    */
-    
-    // Retorno padrão
-    return {
-        reply: "Olá! Como posso ajudá-lo a agendar seu atendimento?",
-        action: null
-    };
+
+    } catch (err) {
+        console.error('Erro ao conectar com a API do GPT:', err);
+        return {
+            reply: "Desculpe, ocorreu um erro na nossa comunicação interna. Tente novamente mais tarde.",
+            action: null
+        };
+    }
 }
 
-// Simulação da chamada da Evolution API para enviar mensagem
+// Função para chamar a API de Mensagens do WhatsApp (substitua pela sua)
 async function sendWhatsAppMessage(number: string, message: string) {
     console.log(`Enviando mensagem para ${number}: ${message}`);
-    // Implemente a lógica real de envio de mensagem aqui
+    // Exemplo de chamada para a Evolution API
+    const evolutionApiUrl = `${process.env.EVOLUTION_API_URL}/message/sendText/evolution-instance-name`;
+    const evolutionApiKey = process.env.EVOLUTION_API_KEY;
+    
+    try {
+        const response = await fetch(evolutionApiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': evolutionApiKey as string,
+            },
+            body: JSON.stringify({
+                number,
+                textMessage: {
+                    text: message
+                }
+            }),
+        });
+
+        if (!response.ok) {
+            console.error('Erro ao enviar mensagem via Evolution API:', await response.json());
+        }
+    } catch (err) {
+        console.error('Falha ao conectar com a Evolution API:', err);
+    }
 }
 
 export async function POST(req: NextRequest) {
@@ -81,32 +123,26 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true });
     }
     
-    const userId = instanceName; // A Evolution API usa o nome da instância como identificador
-    
+    const userId = instanceName;
     const permission = await canPermission({ type: 'chatbot' });
     const config = await getChatbotConfig({ userId });
     
     if (!permission.hasPermission || !config?.enabled) {
-        // Se o chatbot não estiver ativo ou o usuário não tiver permissão, não processar
         return NextResponse.json({ success: false, message: 'Chatbot inativo.' });
     }
 
-    // Obter contexto da empresa
     const empresa = await getInfoSchedule({ userId });
     if (!empresa) {
         return NextResponse.json({ success: false, message: 'Empresa não encontrada.' });
     }
 
-    // Passar a mensagem do cliente para o GPT para processamento
     const gptResponse = await getGPTResponse(message, config.personality, {
         services: empresa.services,
         times: empresa.times,
         name: empresa.name,
     });
     
-    // Processar a resposta da IA
     if (gptResponse.action === 'create_appointment') {
-        // A propriedade 'data' agora é garantida pelo tipo `GPTResponseCreateAppointment`
         const { date, time, serviceId, name, email, phone } = gptResponse.data;
         const newAppointment = await createNewAppointment({
             empresaId: userId,
