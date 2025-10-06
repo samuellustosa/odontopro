@@ -1,3 +1,4 @@
+// src/app/api/whatsapp/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { canPermission } from '@/utils/permissions/canPermission';
 import { getChatbotConfig } from '@/app/(panel)/dashboard/chatbot/_data-access/get-config';
@@ -9,8 +10,8 @@ import { isSlotSequenceAvailable } from '@/app/(public)/empresa/[id]/_components
 
 // Simulação da chamada da Evolution API
 interface WebhookMessage {
-    instanceName?: string; // Alterado para opcional
-    message: string;
+    instance?: string; // Alterado para opcional
+    message?: string;
     clientNumber: string;
     fromMe: boolean;
     event?: string;
@@ -84,10 +85,10 @@ async function getGPTResponse(prompt: string, personality: string, context: any)
 // Função para chamar a API de Mensagens do WhatsApp (substitua pela sua)
 async function sendWhatsAppMessage(number: string, message: string) {
     console.log(`Enviando mensagem para ${number}: ${message}`);
-    
+
     const evolutionApiUrl = `${process.env.EVOLUTION_API_URL}/message/sendText/evolution-instance-name`;
     const evolutionApiKey = process.env.EVOLUTION_API_KEY;
-    
+
     try {
         const response = await fetch(evolutionApiUrl, {
             method: 'POST',
@@ -113,18 +114,19 @@ async function sendWhatsAppMessage(number: string, message: string) {
 
 export async function POST(req: NextRequest) {
     const payload = await req.json();
-    const { instanceName, message, clientNumber, fromMe, event, data }: WebhookMessage = payload;
+    // CORREÇÃO: Alterado a desestruturação de 'instanceName' para 'instance'
+    const { instance, message, clientNumber, fromMe, event, data }: WebhookMessage = payload;
 
     if (fromMe) {
         return NextResponse.json({ success: true });
     }
 
-    if (!instanceName || typeof instanceName !== 'string') {
-        console.error("Payload do webhook recebido sem instanceName ou com formato inválido:", payload);
+    if (!instance || typeof instance !== 'string') {
+        console.error("Payload do webhook recebido sem instance ou com formato inválido:", payload);
         return NextResponse.json({ error: "ID da instância não fornecido ou inválido no payload do webhook." }, { status: 400 });
     }
-    
-    const userId = instanceName.replace('instance-', '');
+
+    const userId = instance.replace('instance-', '');
 
     // Se o evento for de atualização do QR Code, salvar no banco de dados.
     if (event === 'QRCODE_UPDATED' && data && data.qrcode) {
@@ -142,17 +144,20 @@ export async function POST(req: NextRequest) {
 
     const permission = await canPermission({ type: 'chatbot' });
     const config = await getChatbotConfig({ userId });
-    
+
     if (!permission.hasPermission || !config?.enabled) {
         return NextResponse.json({ success: false, message: 'Chatbot inativo.' });
     }
 
+    // CORREÇÃO: O 'message' pode ser undefined, então verifique antes de passar para a função
+    const userMessage = message || '';
+    
     const empresa = await getInfoSchedule({ userId });
     if (!empresa) {
         return NextResponse.json({ success: false, message: 'Empresa não encontrada.' });
     }
 
-    const gptResponse = await getGPTResponse(message, config.personality, {
+    const gptResponse = await getGPTResponse(userMessage, config.personality, {
         services: empresa.services,
         times: empresa.times,
         name: empresa.name,
@@ -164,7 +169,7 @@ export async function POST(req: NextRequest) {
         // VALIDAÇÃO: Verifica se o horário está disponível antes de agendar
         const blockedTimesResponse = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/schedule/get-appointments?userId=${userId}&date=${date}`);
         const blockedTimes = await blockedTimesResponse.json();
-        
+
         const serviceDuration = empresa.services.find(s => s.id === serviceId)?.duration || 0;
         const requiredSlots = Math.ceil(serviceDuration / 30);
         const isAvailable = isSlotSequenceAvailable(time, requiredSlots, empresa.times, blockedTimes);
@@ -183,7 +188,7 @@ export async function POST(req: NextRequest) {
             email,
             phone,
         });
-        
+
         if (newAppointment.error) {
             await sendWhatsAppMessage(clientNumber, "Desculpe, ocorreu um erro ao agendar. Tente novamente mais tarde.");
         } else {

@@ -94,14 +94,11 @@ export async function POST(req: NextRequest) {
         
         let qrCodeUrl = null;
 
-        if (responseBody.instance?.qrCode) {
-            const qrCodeData = responseBody.instance.qrCode;
-
-            if (qrCodeData.startsWith('http')) {
-                qrCodeUrl = qrCodeData;
-            } else {
-                qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCodeData)}`;
-            }
+        // CORREÇÃO: Verifica a chave correta da resposta da Evolution API
+        if (responseBody.qrcode?.base64) {
+            qrCodeUrl = responseBody.qrcode.base64;
+        } else if (responseBody.qrcode?.code) {
+             qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(responseBody.qrcode.code)}`;
         }
         
         return NextResponse.json({ 
