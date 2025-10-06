@@ -117,15 +117,15 @@ model Subscription {
 }
 
 
+// prisma/schema.prisma
 model ChatbotConfig {
   id          String   @id @default(uuid())
   name        String   @default("Assistente Virtual")
   personality String   @default("Gentil, amigavel, educado, profissional")
   enabled     Boolean  @default(true)
-
+  qrCodeUrl   String? // Adicione esta linha
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id])
-
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

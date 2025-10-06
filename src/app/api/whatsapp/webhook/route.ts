@@ -4,6 +4,8 @@ import { canPermission } from '@/utils/permissions/canPermission';
 import { getChatbotConfig } from '@/app/(panel)/dashboard/chatbot/_data-access/get-config';
 import { createNewAppointment } from '@/app/(public)/empresa/[id]/_actions/create-appointment';
 import { getInfoSchedule } from '@/app/(public)/empresa/[id]/_data-access/get-info-schedule';
+import OpenAI from 'openai';
+import prisma from "@/lib/prisma";
 
 // Simulação da chamada da Evolution API
 interface WebhookMessage {
@@ -11,6 +13,8 @@ interface WebhookMessage {
     message: string;
     clientNumber: string;
     fromMe: boolean;
+    event?: string;
+    data?: any;
 }
 
 // Definindo os tipos para a resposta do GPT
@@ -23,7 +27,7 @@ interface GPTResponseCreateAppointment {
     reply: string;
     action: 'create_appointment';
     data: {
-        date: Date;
+        date: string; // A data virá como string da API
         time: string;
         serviceId: string;
         name: string;
@@ -34,42 +38,56 @@ interface GPTResponseCreateAppointment {
 
 type GPTResponse = GPTResponseDefault | GPTResponseCreateAppointment;
 
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Função de utilidade para checar a disponibilidade dos slots
+function isSlotSequenceAvailable(
+  startSlot: string,
+  requiredSlots: number,
+  allSlots: string[],
+  blockedSlots: string[]
+) {
+    const startIndex = allSlots.indexOf(startSlot);
+    if (startIndex === -1 || startIndex + requiredSlots > allSlots.length) {
+        return false;
+    }
+
+    for (let i = startIndex; i < startIndex + requiredSlots; i++) {
+        const slotTime = allSlots[i];
+        if (blockedSlots.includes(slotTime)) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 // Função para chamar a API do GPT e obter uma resposta estruturada
 async function getGPTResponse(prompt: string, personality: string, context: any): Promise<GPTResponse> {
-    // Implemente a lógica real de chamada à API do GPT aqui.
-    // Exemplo usando a API do OpenAI
     try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o', // Ou outro modelo de sua escolha
-                messages: [
-                    {
-                        role: 'system',
-                        content: `Você é um assistente virtual com a seguinte personalidade: "${personality}". Sua tarefa é auxiliar no agendamento de consultas. O contexto da empresa é: ${JSON.stringify(context)}. Você deve extrair as informações da conversa e, se todas as informações para um agendamento forem obtidas (nome, email, telefone, data, serviço, horário), retorne um JSON com a ação 'create_appointment'. Caso contrário, continue a conversa para obter as informações faltantes.`,
-                    },
-                    {
-                        role: 'user',
-                        content: prompt,
-                    },
-                ],
-                response_format: { type: "json_object" }, // Importante para garantir a resposta em JSON
-            }),
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages: [
+                {
+                    role: 'system',
+                    content: `Você é um assistente virtual com a seguinte personalidade: "${personality}". Sua tarefa é auxiliar no agendamento de consultas. O contexto da empresa é: ${JSON.stringify(context)}. Você deve extrair as informações da conversa e, se todas as informações para um agendamento forem obtidas (nome, email, telefone, data, serviço, horário), retorne um JSON com a ação 'create_appointment'. Caso contrário, continue a conversa para obter as informações faltantes. O formato de data deve ser 'yyyy-mm-dd' e o de horário 'HH:mm'. O telefone deve incluir o DDD e ser apenas números.`,
+                },
+                {
+                    role: 'user',
+                    content: prompt,
+                },
+            ],
+            response_format: { type: "json_object" },
         });
 
-        const gptData = await response.json();
-        // A API da OpenAI retorna a resposta dentro de 'choices[0].message.content'
-        const gptResponseContent = JSON.parse(gptData.choices[0].message.content);
+        const gptResponseContent = JSON.parse(response.choices[0].message.content as string);
 
-        if (response.ok && gptResponseContent) {
+        if (gptResponseContent) {
             return gptResponseContent;
         } else {
-            console.error('Erro ao chamar a API do GPT:', gptData);
+            console.error('Erro ao processar a resposta do GPT:', response);
             return {
                 reply: "Desculpe, não consegui processar sua solicitação no momento. Poderia tentar novamente?",
                 action: null
@@ -88,7 +106,7 @@ async function getGPTResponse(prompt: string, personality: string, context: any)
 // Função para chamar a API de Mensagens do WhatsApp (substitua pela sua)
 async function sendWhatsAppMessage(number: string, message: string) {
     console.log(`Enviando mensagem para ${number}: ${message}`);
-    // Exemplo de chamada para a Evolution API
+    
     const evolutionApiUrl = `${process.env.EVOLUTION_API_URL}/message/sendText/evolution-instance-name`;
     const evolutionApiKey = process.env.EVOLUTION_API_KEY;
     
@@ -116,14 +134,28 @@ async function sendWhatsAppMessage(number: string, message: string) {
 }
 
 export async function POST(req: NextRequest) {
-    const { instanceName, message, clientNumber, fromMe }: WebhookMessage = await req.json();
+    const { instanceName, message, clientNumber, fromMe, event, data }: WebhookMessage = await req.json();
 
-    // Ignorar mensagens enviadas pelo próprio bot
     if (fromMe) {
         return NextResponse.json({ success: true });
     }
     
-    const userId = instanceName;
+    const userId = instanceName.replace('instance-', '');
+
+    // Se o evento for de atualização do QR Code, salvar no banco de dados.
+    if (event === 'QRCODE_UPDATED' && data && data.qrcode) {
+        try {
+            await prisma.chatbotConfig.update({
+                where: { userId: userId },
+                data: { qrCodeUrl: data.qrcode },
+            });
+            console.log(`QR Code para o usuário ${userId} salvo com sucesso.`);
+        } catch (error) {
+            console.error(`Erro ao salvar o QR Code para o usuário ${userId}:`, error);
+        }
+        return NextResponse.json({ success: true });
+    }
+
     const permission = await canPermission({ type: 'chatbot' });
     const config = await getChatbotConfig({ userId });
     
@@ -144,9 +176,23 @@ export async function POST(req: NextRequest) {
     
     if (gptResponse.action === 'create_appointment') {
         const { date, time, serviceId, name, email, phone } = gptResponse.data;
+
+        // VALIDAÇÃO: Verifica se o horário está disponível antes de agendar
+        const blockedTimesResponse = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/schedule/get-appointments?userId=${userId}&date=${date}`);
+        const blockedTimes = await blockedTimesResponse.json();
+        
+        const serviceDuration = empresa.services.find(s => s.id === serviceId)?.duration || 0;
+        const requiredSlots = Math.ceil(serviceDuration / 30);
+        const isAvailable = isSlotSequenceAvailable(time, requiredSlots, empresa.times, blockedTimes);
+
+        if (!isAvailable) {
+            await sendWhatsAppMessage(clientNumber, "Desculpe, o horário solicitado não está mais disponível. Por favor, escolha outro.");
+            return NextResponse.json({ success: false, message: 'Horário indisponível.' });
+        }
+
         const newAppointment = await createNewAppointment({
             empresaId: userId,
-            date,
+            date: new Date(date), // Converte a string para um objeto Date
             time,
             serviceId,
             name,

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
             instanceName: evolutionInstanceName,
             token: "",
             qrcode: true,
-            number: "",
+            // CORREÇÃO: O campo 'number' foi removido para evitar o erro de validação.
             integration: "WHATSAPP-BAILEYS",
             rejectCall: true,
             msgCall: "Olá, não podemos atender chamadas. Por favor, envie uma mensagem!",
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
                 enabled: false,
                 events: []
             },
-            chatwootAccountId: 0,
+            chatwootAccountId: "0", 
             chatwootToken: "",
             chatwootUrl: "",
             chatwootSignMsg: false,
@@ -92,13 +92,22 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: errorMessage || "Falha ao gerar QR Code." }, { status: 500 });
         }
         
-        if (!responseBody.instance || !responseBody.instance.qrCode) {
-             return NextResponse.json({ error: "Instância criada, mas o QR Code não foi retornado na resposta." }, { status: 500 });
+        let qrCodeUrl = null;
+
+        if (responseBody.instance?.qrCode) {
+            const qrCodeData = responseBody.instance.qrCode;
+
+            if (qrCodeData.startsWith('http')) {
+                qrCodeUrl = qrCodeData;
+            } else {
+                qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCodeData)}`;
+            }
         }
-
-        const qrCodeUrl = responseBody.instance.qrCode;
-
-        return NextResponse.json({ qrCodeUrl });
+        
+        return NextResponse.json({ 
+            qrCodeUrl: qrCodeUrl,
+            message: qrCodeUrl ? "QR Code gerado com sucesso!" : "Instância criada. Aguardando QR Code via webhook."
+        });
 
     } catch (err) {
         console.error('Erro ao gerar QR Code:', err);

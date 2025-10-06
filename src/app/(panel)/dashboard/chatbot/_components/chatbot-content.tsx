@@ -2,7 +2,6 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,7 +15,8 @@ import { ResultPermissionProp } from "@/utils/permissions/canPermission";
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 import { useState } from "react";
-import { QrCode } from "lucide-react";
+import { QrCode, Loader2 } from "lucide-react";
+import { useRouter } from 'next/navigation';
 
 interface ChatbotContentProps {
   userId: string;
@@ -28,8 +28,11 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
   const form = useChatbotForm({
     initialValues: config || undefined,
   });
+  const router = useRouter();
 
-  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(config?.qrCodeUrl || null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   async function onSubmit(values: ChatbotFormData) {
     const response = await updateChatbotConfig({
@@ -43,9 +46,25 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
     }
   }
 
+  const pollForQrCode = async (instanceUserId: string) => {
+    const response = await fetch(`/api/whatsapp/get-qrcode?userId=${instanceUserId}`);
+    const data = await response.json();
+    if (data.qrCodeUrl) {
+      setQrCodeUrl(data.qrCodeUrl);
+      setStatusMessage(null);
+      toast.success("QR Code recebido!");
+      setIsGenerating(false);
+      return data.qrCodeUrl;
+    }
+    return null;
+  };
+
   async function handleGenerateQrCode() {
+    setIsGenerating(true);
+    setQrCodeUrl(null);
+    setStatusMessage("Enviando solicitação para criar instância...");
+
     try {
-      toast.info("Gerando QR Code...");
       const response = await fetch('/api/whatsapp/connect', {
         method: 'POST',
         headers: {
@@ -56,15 +75,25 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
 
       const data = await response.json();
 
-      if (response.ok && data.qrCodeUrl) {
-        setQrCodeUrl(data.qrCodeUrl);
-        toast.success("QR Code gerado com sucesso!");
+      if (data.error) {
+        toast.error(data.error);
+        setStatusMessage(`Erro: ${data.error}`);
+        setIsGenerating(false);
       } else {
-        toast.error(data.error || "Falha ao gerar QR Code.");
+        setStatusMessage("Instância criada. Aguardando QR Code...");
+
+        const intervalId = setInterval(async () => {
+          const qrCode = await pollForQrCode(userId);
+          if (qrCode) {
+            clearInterval(intervalId);
+          }
+        }, 3000); // Consulta a API a cada 3 segundos
       }
 
     } catch (err) {
-      toast.error("Erro na comunicação com a API.");
+      toast.error("Erro na comunicação com o servidor.");
+      setStatusMessage("Falha de conexão com o servidor.");
+      setIsGenerating(false);
     }
   }
 
@@ -74,6 +103,7 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      {/* Configurações do Chatbot (Formulário) */}
       <Card className="p-6">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Configurações do Chatbot</CardTitle>
@@ -104,7 +134,6 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="name"
@@ -118,7 +147,6 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="personality"
@@ -132,7 +160,6 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
                   </FormItem>
                 )}
               />
-
               <Button type="submit" className="w-full">
                 Salvar Alterações
               </Button>
@@ -140,7 +167,8 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
           </Form>
         </CardContent>
       </Card>
-
+      
+      {/* Conectar WhatsApp (QR Code) */}
       <Card className="p-6">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Conectar WhatsApp</CardTitle>
@@ -149,14 +177,31 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center space-y-4">
-          <Button onClick={handleGenerateQrCode} disabled={!config?.enabled}>
-            <QrCode className="w-4 h-4 mr-2" />
-            Gerar QR Code de Conexão
+          <Button onClick={handleGenerateQrCode} disabled={!config?.enabled || isGenerating}>
+            {isGenerating ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <QrCode className="w-4 h-4 mr-2" />
+            )}
+            {isGenerating ? "Gerando..." : "Gerar QR Code de Conexão"}
           </Button>
-          {qrCodeUrl && (
-            <div className="border p-4 rounded-md">
-              <Image src={qrCodeUrl} alt="QR Code" width={256} height={256} />
-              <p className="mt-2 text-center text-sm text-gray-500">Escaneie com seu WhatsApp</p>
+
+          {(qrCodeUrl || statusMessage) && (
+            <div className="border p-4 rounded-md flex flex-col items-center justify-center min-h-[300px] w-[300px] text-center">
+              {statusMessage && (
+                <p className="text-sm text-gray-600 font-semibold">{statusMessage}</p>
+              )}
+
+              {qrCodeUrl && (
+                <>
+                  <Image src={qrCodeUrl} alt="QR Code" width={256} height={256} />
+                  <p className="mt-2 text-sm text-gray-500">Escaneie com seu WhatsApp</p>
+                </>
+              )}
+              
+              {isGenerating && !qrCodeUrl && (
+                  <Loader2 className="w-8 h-8 animate-spin text-emerald-500 mt-4" />
+              )}
             </div>
           )}
         </CardContent>
