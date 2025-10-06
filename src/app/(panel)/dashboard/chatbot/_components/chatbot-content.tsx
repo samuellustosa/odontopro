@@ -1,3 +1,4 @@
+// samuellustosa/odontopro/odontopro-e6e4f7d9d3adfc3f329b72bde2fd08fe3ae63e48/src/app/(panel)/dashboard/chatbot/_components/chatbot-content.tsx
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,12 +10,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Button } from "@/components/ui/button";
 import { updateChatbotConfig } from "../_data-access/update-config";
 import { toast } from "sonner";
-import { ChatbotConfig } from "@/generated/prisma";
+import { ChatbotConfig, ConnectionStatus } from "@/generated/prisma";
 import { ResultPermissionProp } from "@/utils/permissions/canPermission";
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 import { useState } from "react";
-import { QrCode, Loader2 } from "lucide-react";
+import { QrCode, Loader2, CheckCircle2, CircleOff, Signal } from "lucide-react"; // Novos ícones
 import { useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,18 @@ interface ChatbotContentProps {
   config: ChatbotConfig | null;
   permission: ResultPermissionProp;
 }
+
+const statusText: Record<ConnectionStatus, string> = {
+    CONNECTED: "Conectado",
+    DISCONNECTED: "Desconectado",
+    PENDING: "Aguardando leitura do QR Code"
+};
+
+const statusColor: Record<ConnectionStatus, string> = {
+    CONNECTED: "text-green-500",
+    DISCONNECTED: "text-red-500",
+    PENDING: "text-yellow-500"
+};
 
 export function ChatbotContent({ userId, config, permission }: ChatbotContentProps) {
   const form = useChatbotForm({
@@ -80,7 +93,6 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
         setStatusMessage(`Erro: ${data.error}`);
         setIsGenerating(false);
       } else {
-        // Use a URL do QR Code da resposta diretamente se estiver disponível
         if (data.qrCodeUrl) {
           setQrCodeUrl(data.qrCodeUrl);
           setStatusMessage("QR Code gerado com sucesso! Escaneie para conectar.");
@@ -108,9 +120,10 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
     return null;
   }
 
+  const isConnected = config?.connectionStatus === "CONNECTED";
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      {/* Configurações do Chatbot (Formulário) */}
       <Card className="p-6">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Configurações do Chatbot</CardTitle>
@@ -175,46 +188,48 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
         </CardContent>
       </Card>
       
-      {/* Conectar WhatsApp (QR Code) */}
       <Card className="p-6">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Conectar WhatsApp</CardTitle>
+          <CardTitle className="text-2xl font-bold">Conectar WhatsApp Business</CardTitle>
           <CardDescription>
             Conecte seu número de WhatsApp para que o bot possa começar a interagir com seus clientes.
           </CardDescription>
+          <div className="flex items-center gap-2 mt-2">
+              <Signal className={cn("size-5", statusColor[config?.connectionStatus || "DISCONNECTED"])} />
+              <p className={cn("font-medium", statusColor[config?.connectionStatus || "DISCONNECTED"])}>
+                  Status: {statusText[config?.connectionStatus || "DISCONNECTED"]}
+              </p>
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center space-y-4">
-          <Button onClick={handleGenerateQrCode} disabled={!config?.enabled || isGenerating}>
-            {isGenerating ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <QrCode className="w-4 h-4 mr-2" />
+            {!isConnected && (
+                <Button onClick={handleGenerateQrCode} disabled={!config?.enabled || isGenerating}>
+                    {isGenerating ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                        <QrCode className="w-4 h-4 mr-2" />
+                    )}
+                    {isGenerating ? "Gerando..." : "Gerar QR Code de Conexão"}
+                </Button>
             )}
-            {isGenerating ? "Gerando..." : "Gerar QR Code de Conexão"}
-          </Button>
 
-          {(qrCodeUrl || statusMessage) ? (
-            <div className="border p-4 rounded-md flex flex-col items-center justify-center min-h-[300px] w-[300px] text-center">
-              {statusMessage && (
-                <p className="text-sm text-gray-600 font-semibold">{statusMessage}</p>
-              )}
-              {qrCodeUrl && (
-                <>
-                  <Image src={qrCodeUrl} alt="QR Code" width={256} height={256} />
-                  <p className="mt-2 text-sm text-gray-500">Escaneie com seu WhatsApp</p>
-                </>
-              )}
-              {isGenerating && !qrCodeUrl && (
-                  <Loader2 className="w-8 h-8 animate-spin text-emerald-500 mt-4" />
-              )}
-            </div>
-          ) : (
-            // Adicionado este bloco para exibir a mensagem de conectado
-            <div className={cn("border border-green-500 bg-green-100 p-4 rounded-md text-center", config?.enabled && "animate-fade-in")}>
-              <p className="text-lg font-semibold text-green-700">Chatbot Conectado!</p>
-              <p className="text-sm text-green-600">Seu assistente virtual está online e pronto para uso.</p>
-            </div>
-          )}
+            {config?.connectionStatus === "PENDING" && config?.qrCodeUrl && (
+                <div className="border p-4 rounded-md flex flex-col items-center justify-center min-h-[300px] w-[300px] text-center">
+                    {statusMessage && (
+                        <p className="text-sm text-gray-600 font-semibold">{statusMessage}</p>
+                    )}
+                    <Image src={config.qrCodeUrl} alt="QR Code" width={256} height={256} />
+                    <p className="mt-2 text-sm text-gray-500">Escaneie com seu WhatsApp Business</p>
+                </div>
+            )}
+
+            {isConnected && (
+                <div className={cn("border border-green-500 bg-green-100 p-4 rounded-md text-center animate-fade-in")}>
+                    <CheckCircle2 className="size-8 text-green-500 mx-auto mb-2" />
+                    <p className="text-lg font-semibold text-green-700">Chatbot Conectado!</p>
+                    <p className="text-sm text-green-600">Seu assistente virtual está online e pronto para uso.</p>
+                </div>
+            )}
         </CardContent>
       </Card>
     </div>

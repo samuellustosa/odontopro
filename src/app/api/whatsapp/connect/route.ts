@@ -1,5 +1,6 @@
-// src/app/api/whatsapp/connect/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+// samuellustosa/odontopro/odontopro-e6e4f7d9d3adfc3f329b72bde2fd08fe3ae63e48/src/app/api/whatsapp/connect/route.ts
+import { NextResponse, NextRequest } from 'next/server';
+import prisma from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
     const { userId } = await req.json();
@@ -10,7 +11,6 @@ export async function POST(req: NextRequest) {
 
     const ngrokUrl = process.env.NEXT_PUBLIC_URL;
     if (!ngrokUrl) {
-        console.error("Variável de ambiente NEXT_PUBLIC_URL não está definida.");
         return NextResponse.json({ error: "Variável de ambiente NEXT_PUBLIC_URL não está definida." }, { status: 500 });
     }
 
@@ -41,12 +41,14 @@ export async function POST(req: NextRequest) {
                 byEvents: false,
                 base64: true,
                 headers: {
-                    authorization: "",
+                    authorization: `Bearer ${process.env.EVOLUTION_API_KEY}`, // Adicionado para segurança
                     "Content-Type": "application/json"
                 },
                 events: [
                     "QRCODE_UPDATED", 
-                    "MESSAGES_UPSERT"
+                    "MESSAGES_UPSERT",
+                    "CONNECTION_UPDATE", // Adicionado para monitorar o status
+                    "CONNECTION_READY" // Adicionado para indicar conexão estabelecida
                 ]
             },
             rabbitmq: {
@@ -83,9 +85,6 @@ export async function POST(req: NextRequest) {
 
         const responseBody = await response.json();
         
-        console.log('Status HTTP da resposta:', response.status);
-        console.log('Resposta completa da Evolution API:', responseBody);
-
         if (!response.ok) {
             const errorMessage = responseBody.message 
                 ? responseBody.message.toString() 
@@ -95,16 +94,19 @@ export async function POST(req: NextRequest) {
         }
         
         let qrCodeUrl = null;
-
         if (responseBody.qrcode?.base64) {
             qrCodeUrl = responseBody.qrcode.base64;
-        } else if (responseBody.qrcode?.code) {
-             qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(responseBody.qrcode.code)}`;
+            // Atualiza o banco de dados com o QR Code inicial
+            await prisma.chatbotConfig.upsert({
+                where: { userId: userId },
+                update: { qrCodeUrl: qrCodeUrl, connectionStatus: "PENDING" },
+                create: { userId: userId, qrCodeUrl: qrCodeUrl, connectionStatus: "PENDING", name: "Assistente Virtual" },
+            });
         }
         
         return NextResponse.json({ 
             qrCodeUrl: qrCodeUrl,
-            message: qrCodeUrl ? "QR Code gerado com sucesso!" : "Instância criada. Aguardando QR Code via webhook."
+            message: qrCodeUrl ? "QR Code gerado com sucesso! Escaneie para conectar." : "Instância criada. Aguardando QR Code via webhook."
         });
 
     } catch (err) {
