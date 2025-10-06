@@ -1,4 +1,4 @@
-// samuellustosa/odontopro/odontopro-e6e4f7d9d3adfc3f329b72bde2fd08fe3ae63e48/src/app/api/whatsapp/webhook/route.ts
+// src/app/api/whatsapp/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getChatbotConfig } from '@/app/(panel)/dashboard/chatbot/_data-access/get-config';
 import { createNewAppointment } from '@/app/(public)/empresa/[id]/_actions/create-appointment';
@@ -149,6 +149,11 @@ export async function POST(req: NextRequest) {
 
     if (fromMe || !message?.text) {
         return NextResponse.json({ success: true });
+    }
+    
+    // Adicione a verificação para clientNumber
+    if (!clientNumber) {
+        return NextResponse.json({ error: "Número do cliente não fornecido." }, { status: 400 });
     }
 
     if (config?.lastMessageId === message.id) {
