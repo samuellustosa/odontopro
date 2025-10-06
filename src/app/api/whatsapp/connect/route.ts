@@ -8,9 +8,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "ID do usuário não fornecido." }, { status: 400 });
     }
 
-    // Seu URL do Ngrok (Substitua se ele mudar!)
-    const ngrokUrl = `https://carmelia-dermatophytic-royally.ngrok-free.app`;
-    
+    // Use a variável de ambiente para o URL do Ngrok
+    const ngrokUrl = process.env.NEXT_PUBLIC_URL;
+
     try {
         const evolutionApiUrl = `${process.env.EVOLUTION_API_URL}/instance/create`;
         const evolutionApiKey = process.env.EVOLUTION_API_KEY;
@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
             instanceName: evolutionInstanceName,
             token: "",
             qrcode: true,
-            // CORREÇÃO: O campo 'number' foi removido para evitar o erro de validação.
             integration: "WHATSAPP-BAILEYS",
             rejectCall: true,
             msgCall: "Olá, não podemos atender chamadas. Por favor, envie uma mensagem!",
@@ -35,8 +34,9 @@ export async function POST(req: NextRequest) {
             proxyUsername: "",
             proxyPassword: "",
             webhook: {
+                // CORREÇÃO: Remova o "/qrcode-updated" para que o URL aponte para a rota genérica.
                 url: `${ngrokUrl}/api/whatsapp/webhook`,
-                byEvents: true,
+                byEvents: false,
                 base64: true,
                 headers: {
                     authorization: "",
