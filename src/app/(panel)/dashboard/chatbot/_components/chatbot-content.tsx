@@ -16,6 +16,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { QrCode, Loader2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
+import { cn } from "@/lib/utils";
 
 interface ChatbotContentProps {
   userId: string;
@@ -192,22 +193,26 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
             {isGenerating ? "Gerando..." : "Gerar QR Code de Conexão"}
           </Button>
 
-          {(qrCodeUrl || statusMessage) && (
+          {(qrCodeUrl || statusMessage) ? (
             <div className="border p-4 rounded-md flex flex-col items-center justify-center min-h-[300px] w-[300px] text-center">
               {statusMessage && (
                 <p className="text-sm text-gray-600 font-semibold">{statusMessage}</p>
               )}
-
               {qrCodeUrl && (
                 <>
                   <Image src={qrCodeUrl} alt="QR Code" width={256} height={256} />
                   <p className="mt-2 text-sm text-gray-500">Escaneie com seu WhatsApp</p>
                 </>
               )}
-              
               {isGenerating && !qrCodeUrl && (
                   <Loader2 className="w-8 h-8 animate-spin text-emerald-500 mt-4" />
               )}
+            </div>
+          ) : (
+            // Adicionado este bloco para exibir a mensagem de conectado
+            <div className={cn("border border-green-500 bg-green-100 p-4 rounded-md text-center", config?.enabled && "animate-fade-in")}>
+              <p className="text-lg font-semibold text-green-700">Chatbot Conectado!</p>
+              <p className="text-sm text-green-600">Seu assistente virtual está online e pronto para uso.</p>
             </div>
           )}
         </CardContent>

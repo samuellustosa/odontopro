@@ -10,7 +10,7 @@ import { isSlotSequenceAvailable } from '@/app/(public)/empresa/[id]/_components
 
 // Simulação da chamada da Evolution API
 interface WebhookMessage {
-    instance?: string; // Alterado para opcional
+    instance?: string;
     message?: string;
     clientNumber: string;
     fromMe: boolean;
@@ -28,7 +28,7 @@ interface GPTResponseCreateAppointment {
     reply: string;
     action: 'create_appointment';
     data: {
-        date: string; // A data virá como string da API
+        date: string;
         time: string;
         serviceId: string;
         name: string;
@@ -114,7 +114,6 @@ async function sendWhatsAppMessage(number: string, message: string) {
 
 export async function POST(req: NextRequest) {
     const payload = await req.json();
-    // CORREÇÃO: Alterado a desestruturação de 'instanceName' para 'instance'
     const { instance, message, clientNumber, fromMe, event, data }: WebhookMessage = payload;
 
     if (fromMe) {
@@ -128,12 +127,12 @@ export async function POST(req: NextRequest) {
 
     const userId = instance.replace('instance-', '');
 
-    // Se o evento for de atualização do QR Code, salvar no banco de dados.
-    if (event === 'QRCODE_UPDATED' && data && data.qrcode) {
+    if (event === 'QRCODE_UPDATED' || event === 'CONNECTION_UPDATE' || event === 'READY') {
         try {
-            await prisma.chatbotConfig.update({
+            await prisma.chatbotConfig.upsert({
                 where: { userId: userId },
-                data: { qrCodeUrl: data.qrcode },
+                update: { qrCodeUrl: data?.qrcode || null },
+                create: { userId: userId, qrCodeUrl: data?.qrcode || null },
             });
             console.log(`QR Code para o usuário ${userId} salvo com sucesso.`);
         } catch (error) {
@@ -149,7 +148,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, message: 'Chatbot inativo.' });
     }
 
-    // CORREÇÃO: O 'message' pode ser undefined, então verifique antes de passar para a função
     const userMessage = message || '';
     
     const empresa = await getInfoSchedule({ userId });
@@ -166,7 +164,6 @@ export async function POST(req: NextRequest) {
     if (gptResponse.action === 'create_appointment') {
         const { date, time, serviceId, name, email, phone } = gptResponse.data;
 
-        // VALIDAÇÃO: Verifica se o horário está disponível antes de agendar
         const blockedTimesResponse = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/schedule/get-appointments?userId=${userId}&date=${date}`);
         const blockedTimes = await blockedTimesResponse.json();
 
@@ -181,7 +178,7 @@ export async function POST(req: NextRequest) {
 
         const newAppointment = await createNewAppointment({
             empresaId: userId,
-            date: new Date(date), // Converte a string para um objeto Date
+            date: new Date(date),
             time,
             serviceId,
             name,

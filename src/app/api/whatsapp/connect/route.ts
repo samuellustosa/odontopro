@@ -8,8 +8,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "ID do usuário não fornecido." }, { status: 400 });
     }
 
-    // Use a variável de ambiente para o URL do Ngrok
     const ngrokUrl = process.env.NEXT_PUBLIC_URL;
+    if (!ngrokUrl) {
+        console.error("Variável de ambiente NEXT_PUBLIC_URL não está definida.");
+        return NextResponse.json({ error: "Variável de ambiente NEXT_PUBLIC_URL não está definida." }, { status: 500 });
+    }
 
     try {
         const evolutionApiUrl = `${process.env.EVOLUTION_API_URL}/instance/create`;
@@ -34,7 +37,6 @@ export async function POST(req: NextRequest) {
             proxyUsername: "",
             proxyPassword: "",
             webhook: {
-                // CORREÇÃO: Remova o "/qrcode-updated" para que o URL aponte para a rota genérica.
                 url: `${ngrokUrl}/api/whatsapp/webhook`,
                 byEvents: false,
                 base64: true,
@@ -94,7 +96,6 @@ export async function POST(req: NextRequest) {
         
         let qrCodeUrl = null;
 
-        // CORREÇÃO: Verifica a chave correta da resposta da Evolution API
         if (responseBody.qrcode?.base64) {
             qrCodeUrl = responseBody.qrcode.base64;
         } else if (responseBody.qrcode?.code) {
