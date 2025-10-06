@@ -1,4 +1,3 @@
-// src/app/(panel)/dashboard/chatbot/_components/chatbot-content.tsx
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,14 +79,21 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
         setStatusMessage(`Erro: ${data.error}`);
         setIsGenerating(false);
       } else {
-        setStatusMessage("Instância criada. Aguardando QR Code...");
-
-        const intervalId = setInterval(async () => {
-          const qrCode = await pollForQrCode(userId);
-          if (qrCode) {
-            clearInterval(intervalId);
-          }
-        }, 3000); // Consulta a API a cada 3 segundos
+        // Use a URL do QR Code da resposta diretamente se estiver disponível
+        if (data.qrCodeUrl) {
+          setQrCodeUrl(data.qrCodeUrl);
+          setStatusMessage("QR Code gerado com sucesso! Escaneie para conectar.");
+          setIsGenerating(false);
+        } else {
+          setStatusMessage("Instância criada. Aguardando QR Code via webhook.");
+          // Iniciar o polling apenas se o QR code não foi recebido na resposta inicial
+          const intervalId = setInterval(async () => {
+            const qrCode = await pollForQrCode(userId);
+            if (qrCode) {
+              clearInterval(intervalId);
+            }
+          }, 3000); 
+        }
       }
 
     } catch (err) {

@@ -1,4 +1,3 @@
-// src/app/api/whatsapp/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { canPermission } from '@/utils/permissions/canPermission';
 import { getChatbotConfig } from '@/app/(panel)/dashboard/chatbot/_data-access/get-config';
@@ -6,10 +5,11 @@ import { createNewAppointment } from '@/app/(public)/empresa/[id]/_actions/creat
 import { getInfoSchedule } from '@/app/(public)/empresa/[id]/_data-access/get-info-schedule';
 import OpenAI from 'openai';
 import prisma from "@/lib/prisma";
+import { isSlotSequenceAvailable } from '@/app/(public)/empresa/[id]/_components/schedule-utils';
 
 // Simulação da chamada da Evolution API
 interface WebhookMessage {
-    instanceName: string;
+    instanceName?: string; // Alterado para opcional
     message: string;
     clientNumber: string;
     fromMe: boolean;
@@ -41,28 +41,6 @@ type GPTResponse = GPTResponseDefault | GPTResponseCreateAppointment;
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
-
-// Função de utilidade para checar a disponibilidade dos slots
-function isSlotSequenceAvailable(
-  startSlot: string,
-  requiredSlots: number,
-  allSlots: string[],
-  blockedSlots: string[]
-) {
-    const startIndex = allSlots.indexOf(startSlot);
-    if (startIndex === -1 || startIndex + requiredSlots > allSlots.length) {
-        return false;
-    }
-
-    for (let i = startIndex; i < startIndex + requiredSlots; i++) {
-        const slotTime = allSlots[i];
-        if (blockedSlots.includes(slotTime)) {
-            return false;
-        }
-    }
-
-    return true;
-}
 
 // Função para chamar a API do GPT e obter uma resposta estruturada
 async function getGPTResponse(prompt: string, personality: string, context: any): Promise<GPTResponse> {
@@ -134,10 +112,16 @@ async function sendWhatsAppMessage(number: string, message: string) {
 }
 
 export async function POST(req: NextRequest) {
-    const { instanceName, message, clientNumber, fromMe, event, data }: WebhookMessage = await req.json();
+    const payload = await req.json();
+    const { instanceName, message, clientNumber, fromMe, event, data }: WebhookMessage = payload;
 
     if (fromMe) {
         return NextResponse.json({ success: true });
+    }
+
+    if (!instanceName || typeof instanceName !== 'string') {
+        console.error("Payload do webhook recebido sem instanceName ou com formato inválido:", payload);
+        return NextResponse.json({ error: "ID da instância não fornecido ou inválido no payload do webhook." }, { status: 400 });
     }
     
     const userId = instanceName.replace('instance-', '');
