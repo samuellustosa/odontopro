@@ -7,6 +7,7 @@ import OpenAI from 'openai';
 import prisma from "@/lib/prisma";
 import { isSlotSequenceAvailable } from '@/app/(public)/empresa/[id]/_components/schedule-utils';
 import { ConnectionStatus } from '@/generated/prisma';
+import { revalidatePath } from 'next/cache'; //
 
 // Definindo os tipos para o payload do webhook da Evolution API
 interface WebhookPayload {
@@ -136,12 +137,14 @@ export async function POST(req: NextRequest) {
                 connectionStatus: newQrCode ? "PENDING" : "DISCONNECTED" as ConnectionStatus
             },
         });
+        revalidatePath('/dashboard/chatbot'); //
         return NextResponse.json({ success: true });
     } else if (event === 'CONNECTION_UPDATE' && data?.state === 'open') {
         await prisma.chatbotConfig.update({
             where: { userId },
             data: { connectionStatus: "CONNECTED" as ConnectionStatus, qrCodeUrl: null },
         });
+        revalidatePath('/dashboard/chatbot'); //
         return NextResponse.json({ success: true });
     }
 

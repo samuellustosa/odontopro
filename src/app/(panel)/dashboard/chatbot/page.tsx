@@ -1,8 +1,8 @@
+// src/app/(panel)/dashboard/chatbot/page.tsx
 import getSession from '@/lib/getSession';
 import { redirect } from 'next/navigation';
 import { canPermission } from '@/utils/permissions/canPermission';
 import { ChatbotContent } from './_components/chatbot-content';
-import { getChatbotConfig } from './_data-access/get-config';
 import { LabelSubscription } from '@/components/ui/label-subscription';
 
 export default async function Chatbot() {
@@ -13,7 +13,6 @@ export default async function Chatbot() {
   }
 
   const permission = await canPermission({ type: 'chatbot' });
-  const config = await getChatbotConfig({ userId: session?.user?.id! });
 
   return (
     <main>
@@ -22,7 +21,6 @@ export default async function Chatbot() {
       )}
       {permission.hasPermission && (
         <ChatbotContent
-          config={config}
           permission={permission}
           userId={session.user?.id!}
         />

@@ -1,4 +1,5 @@
-// samuellustosa/odontopro/odontopro-e6e4f7d9d3adfc3f329b72bde2fd08fe3ae63e48/src/app/(panel)/dashboard/chatbot/_components/chatbot-content.tsx
+// src/app/(panel)/dashboard/chatbot/_components/chatbot-content.tsx
+
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,13 +16,13 @@ import { ResultPermissionProp } from "@/utils/permissions/canPermission";
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 import { useState } from "react";
-import { QrCode, Loader2, CheckCircle2, CircleOff, Signal } from "lucide-react"; // Novos ícones
+import { QrCode, Loader2, CheckCircle2, CircleOff, Signal } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface ChatbotContentProps {
   userId: string;
-  config: ChatbotConfig | null;
   permission: ResultPermissionProp;
 }
 
@@ -37,13 +38,26 @@ const statusColor: Record<ConnectionStatus, string> = {
     PENDING: "text-yellow-500"
 };
 
-export function ChatbotContent({ userId, config, permission }: ChatbotContentProps) {
+export function ChatbotContent({ userId, permission }: ChatbotContentProps) {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const { data: config, isLoading } = useQuery({
+    queryKey: ["chatbot-config", userId],
+    queryFn: async () => {
+      const response = await fetch(`/api/chatbot/get-config?userId=${userId}`);
+      if (!response.ok) {
+        throw new Error("Falha ao buscar configurações do chatbot.");
+      }
+      return response.json();
+    },
+    refetchInterval: 3000,
+  });
+
   const form = useChatbotForm({
     initialValues: config || undefined,
   });
-  const router = useRouter();
 
-  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(config?.qrCodeUrl || null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -59,22 +73,8 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
     }
   }
 
-  const pollForQrCode = async (instanceUserId: string) => {
-    const response = await fetch(`/api/whatsapp/get-qrcode?userId=${instanceUserId}`);
-    const data = await response.json();
-    if (data.qrCodeUrl) {
-      setQrCodeUrl(data.qrCodeUrl);
-      setStatusMessage(null);
-      toast.success("QR Code recebido!");
-      setIsGenerating(false);
-      return data.qrCodeUrl;
-    }
-    return null;
-  };
-
   async function handleGenerateQrCode() {
     setIsGenerating(true);
-    setQrCodeUrl(null);
     setStatusMessage("Enviando solicitação para criar instância...");
 
     try {
@@ -91,36 +91,29 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
       if (data.error) {
         toast.error(data.error);
         setStatusMessage(`Erro: ${data.error}`);
-        setIsGenerating(false);
       } else {
-        if (data.qrCodeUrl) {
-          setQrCodeUrl(data.qrCodeUrl);
-          setStatusMessage("QR Code gerado com sucesso! Escaneie para conectar.");
-          setIsGenerating(false);
-        } else {
-          setStatusMessage("Instância criada. Aguardando QR Code via webhook.");
-          // Iniciar o polling apenas se o QR code não foi recebido na resposta inicial
-          const intervalId = setInterval(async () => {
-            const qrCode = await pollForQrCode(userId);
-            if (qrCode) {
-              clearInterval(intervalId);
-            }
-          }, 3000); 
-        }
+        toast.success("Instância criada! Aguardando QR Code...");
+        queryClient.invalidateQueries({ queryKey: ["chatbot-config", userId] });
       }
-
     } catch (err) {
       toast.error("Erro na comunicação com o servidor.");
       setStatusMessage("Falha de conexão com o servidor.");
+    } finally {
       setIsGenerating(false);
     }
+  }
+
+  if (isLoading) {
+    return <p>Carregando configurações do chatbot...</p>;
   }
 
   if (!permission.hasPermission) {
     return null;
   }
-
-  const isConnected = config?.connectionStatus === "CONNECTED";
+  
+  const currentStatus = (config?.connectionStatus as ConnectionStatus) ?? "DISCONNECTED";
+  const isConnected = currentStatus === "CONNECTED";
+  const showQrCode = currentStatus === "PENDING" && config?.qrCodeUrl;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -195,15 +188,15 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
             Conecte seu número de WhatsApp para que o bot possa começar a interagir com seus clientes.
           </CardDescription>
           <div className="flex items-center gap-2 mt-2">
-              <Signal className={cn("size-5", statusColor[config?.connectionStatus || "DISCONNECTED"])} />
-              <p className={cn("font-medium", statusColor[config?.connectionStatus || "DISCONNECTED"])}>
-                  Status: {statusText[config?.connectionStatus || "DISCONNECTED"]}
+              <Signal className={cn("size-5", statusColor[currentStatus])} />
+              <p className={cn("font-medium", statusColor[currentStatus])}>
+                  Status: {statusText[currentStatus]}
               </p>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center space-y-4">
-            {!isConnected && (
-                <Button onClick={handleGenerateQrCode} disabled={!config?.enabled || isGenerating}>
+            {!isConnected && !showQrCode && (
+                <Button onClick={handleGenerateQrCode} disabled={!form.watch('enabled') || isGenerating}>
                     {isGenerating ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : (
@@ -213,12 +206,12 @@ export function ChatbotContent({ userId, config, permission }: ChatbotContentPro
                 </Button>
             )}
 
-            {config?.connectionStatus === "PENDING" && config?.qrCodeUrl && (
+            {showQrCode && (
                 <div className="border p-4 rounded-md flex flex-col items-center justify-center min-h-[300px] w-[300px] text-center">
                     {statusMessage && (
                         <p className="text-sm text-gray-600 font-semibold">{statusMessage}</p>
                     )}
-                    <Image src={config.qrCodeUrl} alt="QR Code" width={256} height={256} />
+                    <Image src={config!.qrCodeUrl!} alt="QR Code" width={256} height={256} />
                     <p className="mt-2 text-sm text-gray-500">Escaneie com seu WhatsApp Business</p>
                 </div>
             )}
