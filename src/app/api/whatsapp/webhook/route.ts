@@ -1,223 +1,229 @@
-// src/app/api/whatsapp/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 import { getChatbotConfig } from '@/app/(panel)/dashboard/chatbot/_data-access/get-config';
 import { createNewAppointment } from '@/app/(public)/empresa/[id]/_actions/create-appointment';
 import { getInfoSchedule } from '@/app/(public)/empresa/[id]/_data-access/get-info-schedule';
-import OpenAI from 'openai';
-import prisma from "@/lib/prisma";
 import { isSlotSequenceAvailable } from '@/app/(public)/empresa/[id]/_components/schedule-utils';
+import OpenAI from 'openai';
+import { revalidatePath } from 'next/cache';
 import { ConnectionStatus } from '@/generated/prisma';
-import { revalidatePath } from 'next/cache'; //
 
-// Definindo os tipos para o payload do webhook da Evolution API
+// Tipos do payload da Evolution API
 interface WebhookPayload {
-    instance?: string;
-    message?: {
-        text?: string;
-        id?: string;
-    };
-    clientNumber?: string;
-    fromMe?: boolean;
-    event?: string;
-    data?: any;
+  instance?: string;
+  event?: string;
+  data?: any;
+  message?: { text?: string; id?: string };
+  clientNumber?: string;
+  fromMe?: boolean;
 }
 
-// Definindo os tipos para a resposta do GPT
+// Tipos da resposta do GPT
 interface GPTResponseDefault {
-    reply: string;
-    action: null;
+  reply: string;
+  action: null;
 }
-
 interface GPTResponseCreateAppointment {
-    reply: string;
-    action: 'create_appointment';
-    data: {
-        date: string;
-        time: string;
-        serviceId: string;
-        name: string;
-        email: string;
-        phone: string;
-    };
+  reply: string;
+  action: 'create_appointment';
+  data: {
+    date: string;
+    time: string;
+    serviceId: string;
+    name: string;
+    email: string;
+    phone: string;
+  };
 }
-
 type GPTResponse = GPTResponseDefault | GPTResponseCreateAppointment;
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// ===========================================
+// 🔹 Função auxiliar: GPT Response
+// ===========================================
 async function getGPTResponse(prompt: string, personality: string, context: any): Promise<GPTResponse> {
-    try {
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [
-                {
-                    role: 'system',
-                    content: `Você é um assistente virtual com a seguinte personalidade: "${personality}". Sua tarefa é auxiliar no agendamento de consultas. O contexto da empresa é: ${JSON.stringify(context)}. Você deve extrair as informações da conversa e, se todas as informações para um agendamento forem obtidas (nome, email, telefone, data, serviço, horário), retorne um JSON com a ação 'create_appointment'. Caso contrário, continue a conversa para obter as informações faltantes. O formato de data deve ser 'yyyy-mm-dd' e o de horário 'HH:mm'. O telefone deve incluir o DDD e ser apenas números.`,
-                },
-                {
-                    role: 'user',
-                    content: prompt,
-                },
-            ],
-            response_format: { type: "json_object" },
-        });
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `Você é um assistente virtual com a seguinte personalidade: "${personality}". Sua tarefa é auxiliar no agendamento de consultas. O contexto da empresa é: ${JSON.stringify(context)}.`,
+        },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+    });
 
-        const gptResponseContent = JSON.parse(response.choices[0].message.content as string);
-
-        if (gptResponseContent) {
-            return gptResponseContent;
-        } else {
-            return {
-                reply: "Desculpe, não consegui processar sua solicitação no momento. Poderia tentar novamente?",
-                action: null
-            };
-        }
-
-    } catch (err) {
-        console.error('Erro ao conectar com a API do GPT:', err);
-        return {
-            reply: "Desculpe, ocorreu um erro na nossa comunicação interna. Tente novamente mais tarde.",
-            action: null
-        };
-    }
+    return JSON.parse(response.choices[0].message.content as string);
+  } catch (err) {
+    console.error('Erro ao conectar com a API do GPT:', err);
+    return {
+      reply: 'Desculpe, ocorreu um erro interno. Tente novamente mais tarde.',
+      action: null,
+    };
+  }
 }
 
+// ===========================================
+// 🔹 Função auxiliar: enviar mensagem via Evolution API
+// ===========================================
 async function sendWhatsAppMessage(instanceName: string, number: string, message: string) {
-    const evolutionApiUrl = `${process.env.EVOLUTION_API_URL}/message/sendText/${instanceName}`;
-    const evolutionApiKey = process.env.EVOLUTION_API_KEY;
+  const url = `${process.env.EVOLUTION_API_URL}/message/sendText/${instanceName}`;
+  const apiKey = process.env.EVOLUTION_API_KEY;
 
-    try {
-        const response = await fetch(evolutionApiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': evolutionApiKey as string,
-            },
-            body: JSON.stringify({
-                number,
-                textMessage: {
-                    text: message
-                }
-            }),
-        });
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: apiKey as string,
+      },
+      body: JSON.stringify({ number, textMessage: { text: message } }),
+    });
 
-        if (!response.ok) {
-            console.error('Erro ao enviar mensagem via Evolution API:', await response.json());
-        }
-    } catch (err) {
-        console.error('Falha ao conectar com a Evolution API:', err);
+    if (!res.ok) {
+      console.error('Erro ao enviar mensagem:', await res.text());
     }
+  } catch (err) {
+    console.error('Falha ao conectar com a Evolution API:', err);
+  }
 }
 
+// ===========================================
+// 🔹 Endpoint principal: Webhook
+// ===========================================
 export async function POST(req: NextRequest) {
-    const evolutionApiKey = process.env.EVOLUTION_API_KEY;
-    const authHeader = req.headers.get('Authorization');
-    // Verificação de segurança aprimorada para o tipo 'string | undefined'
-    if (!authHeader || authHeader !== `Bearer ${evolutionApiKey}`) {
-        return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-    }
+  const authHeader = req.headers.get('Authorization');
+  const apiKey = process.env.EVOLUTION_API_KEY;
 
-    const payload: WebhookPayload = await req.json();
-    const { instance, message, clientNumber, fromMe, event, data } = payload;
+  if (!authHeader || authHeader !== `Bearer ${apiKey}`) {
+    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+  }
 
-    if (!instance || typeof instance !== 'string') {
-        return NextResponse.json({ error: "ID da instância não fornecido ou inválido no payload do webhook." }, { status: 400 });
-    }
+  const payload: WebhookPayload = await req.json();
+  console.log('📩 Webhook recebido:', JSON.stringify(payload, null, 2));
 
-    const userId = instance.replace('instance-', '');
+  const { instance, event, data, message, clientNumber, fromMe } = payload;
+  if (!instance) return NextResponse.json({ error: 'Instância não fornecida.' }, { status: 400 });
 
-    if (event === 'QRCODE_UPDATED') {
-        const newQrCode = data?.qrcode || null;
-        await prisma.chatbotConfig.update({
-            where: { userId },
-            data: {
-                qrCodeUrl: newQrCode,
-                connectionStatus: newQrCode ? "PENDING" : "DISCONNECTED" as ConnectionStatus
-            },
-        });
-        revalidatePath('/dashboard/chatbot'); //
-        return NextResponse.json({ success: true });
-    } else if (event === 'CONNECTION_UPDATE' && data?.state === 'open') {
-        await prisma.chatbotConfig.update({
-            where: { userId },
-            data: { connectionStatus: "CONNECTED" as ConnectionStatus, qrCodeUrl: null },
-        });
-        revalidatePath('/dashboard/chatbot'); //
-        return NextResponse.json({ success: true });
-    }
+  const userId = instance.replace('instance-', '');
 
-    const config = await getChatbotConfig({ userId });
+  // ===========================================
+  // 🟣 Eventos de conexão e QR Code
+  // ===========================================
+  const eventName = event?.toLowerCase();
 
-    if (fromMe || !message?.text) {
-        return NextResponse.json({ success: true });
-    }
-    
-    // Adicione a verificação para clientNumber
-    if (!clientNumber) {
-        return NextResponse.json({ error: "Número do cliente não fornecido." }, { status: 400 });
-    }
-
-    if (config?.lastMessageId === message.id) {
-        return NextResponse.json({ success: true });
-    }
-
-    if (!config?.enabled) {
-        return NextResponse.json({ success: false, message: 'Chatbot inativo.' });
-    }
-
-    const userMessage = message.text;
-
-    const empresa = await getInfoSchedule({ userId });
-    if (!empresa) {
-        return NextResponse.json({ success: false, message: 'Empresa não encontrada.' });
-    }
+  if (eventName === 'qrcode.updated') {
+    console.log('🟡 QR Code atualizado');
+    // A propriedade 'qrcode' (newQrCode) da Evolution API é um objeto que contém a string 'base64'.
+    // Como o campo qrCodeUrl no Prisma é 'String?', precisamos salvar apenas a string 'base64'.
+    const newQrCodeData = data?.qrcode;
+    const qrCodeBase64String = newQrCodeData?.base64 || null; // <--- CORREÇÃO APLICADA AQUI
 
     await prisma.chatbotConfig.update({
-        where: { userId },
-        data: { lastMessageId: message.id },
+      where: { userId },
+      data: {
+        qrCodeUrl: qrCodeBase64String, // Agora salva apenas a string base64 ou null
+        connectionStatus: qrCodeBase64String ? 'PENDING' : 'DISCONNECTED',
+      },
     });
 
-    const gptResponse = await getGPTResponse(userMessage, config.personality, {
-        services: empresa.services,
-        times: empresa.times,
-        name: empresa.name,
+    revalidatePath('/dashboard/chatbot');
+    return NextResponse.json({ success: true });
+  }
+
+  if (eventName === 'connection.update' && data?.state === 'open') {
+    console.log('🟢 Conexão estabelecida (connection.update)');
+    await prisma.chatbotConfig.update({
+      where: { userId },
+      data: { connectionStatus: 'CONNECTED', qrCodeUrl: null },
     });
 
-    if (gptResponse.action === 'create_appointment') {
-        const { date, time, serviceId, name, email, phone } = gptResponse.data;
+    revalidatePath('/dashboard/chatbot');
+    return NextResponse.json({ success: true });
+  }
 
-        const blockedTimesResponse = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/schedule/get-appointments?userId=${userId}&date=${date}`);
-        const blockedTimes = await blockedTimesResponse.json();
+  if (eventName === 'connection.ready') {
+    console.log('🟢 Conexão pronta (connection.ready)');
+    await prisma.chatbotConfig.update({
+      where: { userId },
+      data: { connectionStatus: 'CONNECTED', qrCodeUrl: null },
+    });
 
-        const serviceDuration = empresa.services.find(s => s.id === serviceId)?.duration || 0;
-        const requiredSlots = Math.ceil(serviceDuration / 30);
-        const isAvailable = isSlotSequenceAvailable(time, requiredSlots, empresa.times, blockedTimes);
+    revalidatePath('/dashboard/chatbot');
+    return NextResponse.json({ success: true });
+  }
 
-        if (!isAvailable) {
-            await sendWhatsAppMessage(instance, clientNumber, "Desculpe, o horário solicitado não está mais disponível. Por favor, escolha outro.");
-            return NextResponse.json({ success: false, message: 'Horário indisponível.' });
-        }
+  // ===========================================
+  // 💬 Processar mensagens recebidas
+  // ===========================================
+  const config = await getChatbotConfig({ userId });
+  if (!config || fromMe || !message?.text) {
+    return NextResponse.json({ success: true });
+  }
 
-        const newAppointment = await createNewAppointment({
-            empresaId: userId,
-            date: new Date(date),
-            time,
-            serviceId,
-            name,
-            email,
-            phone,
-        });
+  if (config.lastMessageId === message.id) {
+    return NextResponse.json({ success: true });
+  }
 
-        if (newAppointment.error) {
-            await sendWhatsAppMessage(instance, clientNumber, "Desculpe, ocorreu um erro ao agendar. Tente novamente mais tarde.");
-        } else {
-            await sendWhatsAppMessage(instance, clientNumber, "Seu agendamento foi realizado com sucesso!");
-        }
-    } else {
-        await sendWhatsAppMessage(instance, clientNumber, gptResponse.reply);
+  if (!config.enabled) {
+    return NextResponse.json({ success: false, message: 'Chatbot inativo.' });
+  }
+
+  const empresa = await getInfoSchedule({ userId });
+  if (!empresa) {
+    return NextResponse.json({ success: false, message: 'Empresa não encontrada.' });
+  }
+
+  await prisma.chatbotConfig.update({
+    where: { userId },
+    data: { lastMessageId: message.id },
+  });
+
+  const gptResponse = await getGPTResponse(message.text, config.personality, empresa);
+
+  // ===========================================
+  // 📅 Criar agendamento se solicitado
+  // ===========================================
+  if (gptResponse.action === 'create_appointment') {
+    const { date, time, serviceId, name, email, phone } = gptResponse.data;
+
+    // Nota: Recomenda-se usar fetch/axios diretamente aqui ou mover esta lógica para um service/action
+    // para evitar a dependência de NEXT_PUBLIC_URL e melhorar a modularidade.
+    const blockedTimesResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_URL}/api/schedule/get-appointments?userId=${userId}&date=${date}`
+    );
+    const blockedTimes = await blockedTimesResponse.json();
+
+    const serviceDuration = empresa.services.find((s: any) => s.id === serviceId)?.duration || 0;
+    const requiredSlots = Math.ceil(serviceDuration / 30);
+    const isAvailable = isSlotSequenceAvailable(time, requiredSlots, empresa.times, blockedTimes);
+
+    if (!isAvailable) {
+      await sendWhatsAppMessage(instance, clientNumber!, 'Desculpe, o horário solicitado não está disponível.');
+      return NextResponse.json({ success: false });
     }
 
-    return NextResponse.json({ success: true });
+    const newAppointment = await createNewAppointment({
+      empresaId: userId,
+      date: new Date(date),
+      time,
+      serviceId,
+      name,
+      email,
+      phone,
+    });
+
+    if (newAppointment.error) {
+      await sendWhatsAppMessage(instance, clientNumber!, 'Erro ao criar o agendamento. Tente novamente.');
+    } else {
+      await sendWhatsAppMessage(instance, clientNumber!, '✅ Seu agendamento foi realizado com sucesso!');
+    }
+  } else {
+    await sendWhatsAppMessage(instance, clientNumber!, gptResponse.reply);
+  }
+
+  return NextResponse.json({ success: true });
 }
